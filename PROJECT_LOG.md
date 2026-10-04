@@ -25,3 +25,10 @@
 ### Next launch step
 
 - In GitHub **Settings → Pages**, choose **Deploy from a branch**, select **main** and **/(root)**, then save. This will activate the permanent `privateaz9898-tech.github.io/the-rizen-public-site` address directly from the published static site source.
+
+## 2026-10-04 — Dark tactical command-center redesign
+
+- Replaced the bright, playful mural treatment with original high-resolution dark tactical creator artwork: desert-night command station, chrome and weathered-metal materials, mature tactical shadows, and restrained purple/red signal color.
+- The creator reference was preserved on the right-side workstation with a deep-purple tactical shirt, chrome eyewear, and subtle silver accents in hair and goatee.
+- Artwork uses original masked-ranger, warlord, aerospace-sentinel, feline-warrior, and machine silhouettes—not branded or copied franchise characters, logos, or uniforms.
+- Rethemed the public shell, home hero, Pocket command wall, buttons, navigation, and cache to use the darker asset without changing published tools, Maps handoff, music links, or private-on-device behavior.

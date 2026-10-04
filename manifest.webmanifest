@@ -4,8 +4,8 @@
   "description": "Phoenix creator hub and device-only pocket utility kit for ADAN UNFILTERED.",
   "start_url": "./index.html#pocket",
   "display": "standalone",
-  "background_color": "#010000",
-  "theme_color": "#56155D",
+  "background_color": "#030407",
+  "theme_color": "#080A10",
   "icons": [
     {"src": "./assets/rizen-crown.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
   ]
