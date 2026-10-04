@@ -14,7 +14,18 @@ let pocketTimerEndsAt = 0;
 let torchStream;
 let pocketOrientationActive = false;
 let pocketLocation = null;
+let commandRailTimer;
+let commandAmbient;
+let activeTacticalSpotId = '';
 const app = document.querySelector('#app');
+
+const PHOENIX_BASE = { latitude: 33.4484, longitude: -112.0740, label: 'Phoenix, Arizona' };
+const MUSIC_LIBRARY = [
+  { title: 'West Coast / Bay Area', note: 'Owner-stated listening directions. Open an official Spotify search, then choose what you want to play.', queries: ['Tupac', 'E-40', 'West Coast gangster rap'] },
+  { title: 'Rap cue awaiting confirmation', note: '“Brote” was noted by the owner. The exact artist spelling or official Spotify URL still needs confirmation.', queries: ['Brote'] },
+  { title: 'California punk & singalongs', note: 'Official Spotify searches for the punk bands named by the owner.', queries: ['No Use for a Name', 'Me First and the Gimme Gimmes', 'Social Distortion'] },
+  { title: 'Classic outlaw & western', note: 'Old-school country and western searches only—no current-country assumptions.', queries: ['Marty Robbins', 'Johnny Cash', 'Willie Nelson', 'Merle Haggard', 'Conway Twitty', 'Hank Williams Jr.'] }
+];
 
 const icons = {
   home: '⌂', watch: '▶', music: '♫', pocket: '▣', projects: '⌁', shop: '◈', collection: '◇', live: '●', channels: '⌘', owner: '◉', more: '⋯'
@@ -53,6 +64,29 @@ const notice = (message, kind = 'success') => {
 };
 const save = async () => { await saveState(state); };
 
+function localGet(key, fallback = '') { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } }
+function localSet(key, value) { try { localStorage.setItem(key, value); return true; } catch { return false; } }
+function commandSpotifyUrl() { return localGet('rizen-command-spotify-url-v1'); }
+function tacticalSpots() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('rizen-tactical-spots-v1') || '[]');
+    return Array.isArray(saved) ? saved.filter((item) => item && typeof item.id === 'string' && typeof item.name === 'string' && typeof item.query === 'string') : [];
+  } catch { return []; }
+}
+function saveTacticalSpots(spots) { return localSet('rizen-tactical-spots-v1', JSON.stringify(spots)); }
+function commandCoordinates() { return pocketLocation || PHOENIX_BASE; }
+function tacticalMapQuery() {
+  if (activeTacticalSpotId === 'current-location' && pocketLocation) return `${pocketLocation.latitude.toFixed(5)},${pocketLocation.longitude.toFixed(5)}`;
+  const current = tacticalSpots().find((spot) => spot.id === activeTacticalSpotId);
+  return current?.query || PHOENIX_BASE.label;
+}
+function googleMapsEmbed(query) { return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`; }
+function spotifySearchUrl(query) { return `https://open.spotify.com/search/${encodeURIComponent(query)}`; }
+function windDirection(degrees) {
+  if (!Number.isFinite(degrees)) return '—';
+  return ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(degrees / 45) % 8];
+}
+
 function crown(size = 'brand-crown') { return `<img class="${size}" src="./assets/rizen-crown.svg" alt="THE RIZEN crown" />`; }
 function badge(label, color = '') { return `<span class="badge ${color ? `badge-${color}` : ''}">${text(label)}</span>`; }
 function safeLink(url, label = 'Open source') {
@@ -73,9 +107,58 @@ function contentCard(record) {
 }
 function recordTag(record) { return record.demo ? badge('Demo', 'gold') : badge(record.visibility || 'private', record.visibility === 'private' ? 'red' : 'green'); }
 
+function commandRail() {
+  return `<section class="command-rail" aria-label="Phoenix command weather and field conditions">
+    <div class="rail-unit rail-clock"><span>PHX TIME</span><strong data-command-time>Loading…</strong><small data-command-date>America/Phoenix</small></div>
+    <div class="rail-unit"><span>WEATHER</span><strong data-command-weather>Checking…</strong><small data-command-weather-detail>Live public conditions</small></div>
+    <div class="rail-unit"><span>WIND</span><strong data-command-wind>—</strong><small data-command-precip>Precipitation —</small></div>
+    <div class="rail-unit"><span>BAROMETER</span><strong data-command-pressure>—</strong><small data-command-sun>Sunrise / sunset —</small></div>
+    <div class="rail-unit rail-fuel"><span>FUEL WATCH</span><strong>MAPS READY</strong><small>Live prices need a price-feed connection.</small><button class="rail-action" data-pocket-action="fuel-search">Find nearby gas ↗</button></div>
+    <button class="rail-location" data-pocket-action="places-location" title="Use current location for Maps and weather">⌖ Use location</button>
+  </section>`;
+}
+
+function renderCommandAudioDock() {
+  const dock = document.querySelector('#command-audio-dock');
+  if (!dock) return;
+  const url = commandSpotifyUrl();
+  const embed = spotifyEmbed(url);
+  const active = !!commandAmbient;
+  dock.innerHTML = `<aside class="command-audio-dock ${embed ? 'has-spotify' : ''}" aria-label="Persistent command soundtrack">
+    <div class="audio-dock-head"><span class="audio-signal">◉</span><span><b>COMMAND SOUND</b><small>${active ? 'Original ambient synth active' : 'Original ambient synth is off'}</small></span><button class="button button-metal" type="button" data-audio-action="ambient-toggle">${active ? 'Stop ambient' : 'Start ambient'}</button></div>
+    <div class="audio-dock-body">${embed ? `<iframe title="Persistent Spotify player" src="${embed}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe><a href="${escapeHtml(url)}" target="_blank" rel="noreferrer noopener">Open in Spotify ↗</a>` : `<p>Choose a Spotify playlist, album, track, show, or episode URL in the Music Library. Browsers require a play action before audio can start.</p><a href="#music" data-route="music">Open Music Library</a>`}</div>
+  </aside>`;
+}
+
+function startCommandAmbient() {
+  if (commandAmbient) return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return notice('This browser does not support the original ambient audio tool.', 'error');
+  try {
+    const context = new AudioContext();
+    const master = context.createGain();
+    master.gain.value = 0.035;
+    master.connect(context.destination);
+    const low = context.createOscillator(); low.type = 'sine'; low.frequency.value = 46.25;
+    const high = context.createOscillator(); high.type = 'triangle'; high.frequency.value = 92.5;
+    const texture = context.createGain(); texture.gain.value = 0.24;
+    high.connect(texture); texture.connect(master); low.connect(master);
+    const lfo = context.createOscillator(); const lfoGain = context.createGain(); lfo.frequency.value = 0.12; lfoGain.gain.value = 0.014; lfo.connect(lfoGain); lfoGain.connect(master.gain);
+    low.start(); high.start(); lfo.start();
+    commandAmbient = { context, nodes: [low, high, lfo], master, texture, lfoGain };
+    context.resume?.(); renderCommandAudioDock(); notice('Original dark ambient synth is playing. It stays active while you move through the site.');
+  } catch { notice('Ambient audio could not start in this browser.', 'error'); }
+}
+
+function stopCommandAmbient() {
+  if (!commandAmbient) return;
+  commandAmbient.nodes.forEach((node) => { try { node.stop(); } catch {} });
+  commandAmbient.context?.close?.().catch?.(() => {}); commandAmbient = undefined; renderCommandAudioDock(); notice('Ambient synth stopped.');
+}
+
 function shell(page) {
   const current = routeBase();
-  const freshMusic = pub('music').find((item) => item.defaultKey === 'fresh-rap-v1') || pub('music')[0];
+  const selectedSoundtrack = commandSpotifyUrl();
   return `<div class="shell">
     <aside class="sidebar" aria-label="Main navigation">
       <a href="#home" class="brand-lockup" data-route="home">${crown()}<span><span class="brand-title">${text(state.brand.appName)}</span><span class="brand-sub">${text(state.brand.supportName)}</span></span></a>
@@ -85,12 +168,12 @@ function shell(page) {
       <div class="sidebar-foot"><span class="local-badge">PUBLIC CREATOR SITE</span><br>Owner Studio is kept private and is migrating to a secure database-backed dashboard.</div>
     </aside>
     <section class="main-wrap">
-      <header class="topbar">
-        <a class="mobile-brand" href="#home" data-route="home">${crown()}<b>THE RIZEN</b></a>
-        <label class="search-box"><span class="sr-only">Search published content</span><input id="global-search" value="${text(searchTerm)}" placeholder="Search published content, worlds, projects…" autocomplete="off" /><span class="search-icon">⌕</span></label>
-        <span class="topbar-spacer"></span>${freshMusic ? `<a class="music-chip" href="#music" data-route="music">${text(freshMusic.title)}</a>` : '<span class="music-chip">Music links are owner-set</span>'}
-        <span class="owner-button" aria-label="Owner dashboard status">Owner dashboard — private</span>
-      </header>
+      <header class="command-header"><div class="topbar">
+          <a class="mobile-brand" href="#home" data-route="home">${crown()}<b>THE RIZEN</b></a>
+          <label class="search-box"><span class="sr-only">Search published content</span><input id="global-search" value="${text(searchTerm)}" placeholder="Search published content, worlds, projects…" autocomplete="off" /><span class="search-icon">⌕</span></label>
+          <span class="topbar-spacer"></span><a class="music-chip" href="#music" data-route="music">${selectedSoundtrack ? 'Spotify dock set' : 'Set soundtrack'}</a>
+          <span class="owner-button" aria-label="Owner dashboard status">Owner dashboard — private</span>
+        </div>${commandRail()}</header>
       <main id="main-content">${page}</main>
       <nav class="mobile-nav" aria-label="Mobile navigation">
         ${[['home','Home'],['watch','Watch'],['pocket','Pocket'],['projects','Projects'],['more','More']].map(([key,label]) => `<a href="#${key === 'more' ? 'channels' : key}" data-route="${key === 'more' ? 'channels' : key}" class="${current === key ? 'active' : ''}"><span class="m-icon">${icons[key] || icons.more}</span><span>${label}</span></a>`).join('')}
@@ -103,7 +186,7 @@ function footer() {
   return `<footer class="footer"><div class="footer-row"><span><strong>THE RIZEN</strong> / ${text(state.brand.supportName)} / ${text(state.brand.gamingIdentity)}</span><span>FOLLOW • LIKE • SHARE</span><span>Official public creator site • Owner dashboard remains private</span></div></footer>`;
 }
 
-function freshMusicRecord() { return pub('music').find((item) => item.defaultKey === 'fresh-rap-v1') || pub('music')[0]; }
+function freshMusicRecord() { return pub('music').find((item) => item.defaultKey !== 'fresh-rap-v1') || null; }
 function nextPublishedSession() {
   const currentTime = Date.now();
   return pub('schedule').filter((item) => item.startAt && new Date(item.startAt).getTime() >= currentTime).sort((a, b) => new Date(a.startAt) - new Date(b.startAt))[0];
@@ -120,6 +203,7 @@ function weatherLabel(code) {
 }
 function renderPhoenixBriefing() {
   const freshMusic = freshMusicRecord();
+  const soundtrack = commandSpotifyUrl();
   const upcoming = nextPublishedSession();
   const links = pub('quicklink').filter((item) => item.url && isHttpUrl(item.url));
   return `<section class="section phoenix-section"><div class="section-head"><div><p class="eyebrow">Phoenix now / live dashboard</p><h2>Your quick start</h2></div><p class="section-note">Time and date use America/Phoenix. Weather refreshes from Open-Meteo when available.</p></div>
@@ -127,7 +211,7 @@ function renderPhoenixBriefing() {
       <article class="phoenix-card"><span class="dashboard-icon">◷</span><p class="card-kicker">Phoenix time</p><h3 data-phx-time>Loading local time…</h3><p class="card-text" data-phx-date>Loading local date…</p></article>
       <article class="phoenix-card"><span class="dashboard-icon">☼</span><p class="card-kicker">Current weather</p><h3 data-phx-weather>Checking Phoenix…</h3><p class="card-text" data-phx-weather-detail>Live conditions will appear here.</p></article>
       <article class="phoenix-card"><span class="dashboard-icon">!</span><p class="card-kicker">What matters</p><h3>${upcoming ? title(upcoming.title) : 'No creator alert set'}</h3><p class="card-text">${upcoming ? `${text(upcoming.platform || 'Live')} · ${new Date(upcoming.startAt).toLocaleString('en-US', { timeZone: 'America/Phoenix', dateStyle: 'medium', timeStyle: 'short' })} Phoenix time.` : 'No public upcoming session is on the calendar yet. Check back for confirmed broadcasts and events.'}</p></article>
-      <article class="phoenix-card music-start-card"><span class="dashboard-icon">♫</span><p class="card-kicker">Fresh Start / Spotify</p><h3>${freshMusic ? title(freshMusic.title) : 'Add a real playlist'}</h3><p class="card-text">${freshMusic ? 'Official Spotify playback. Editorial contents change on Spotify; requested artist cues are Kodak Black, Lil Durk and Gucci Mane.' : 'More official playlists and links are being curated.'}</p>${freshMusic ? safeLink(freshMusic.url, 'Open in Spotify') : ''}</article>
+      <article class="phoenix-card music-start-card"><span class="dashboard-icon">♫</span><p class="card-kicker">Command soundtrack</p><h3>${soundtrack ? 'Spotify dock is set' : (freshMusic ? title(freshMusic.title) : 'Choose your lane')}</h3><p class="card-text">${soundtrack ? 'Your selected official Spotify source stays in the persistent command dock as you move through the site.' : 'Choose an official Spotify source from West Coast rap, punk, or classic western starting points.'}</p>${soundtrack ? safeLink(soundtrack, 'Open in Spotify') : '<a class="button button-quiet" href="#music" data-route="music">Set soundtrack</a>'}</article>
     </div>
     <div class="quick-link-row">${links.length ? links.map((item) => `<a class="quick-link-card" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer noopener"><span class="quick-link-mark" aria-hidden="true">C</span><span><strong>${title(item.title)}</strong><small>${text(item.label || 'Official external link')}</small></span><span class="quick-link-arrow">↗</span></a>`).join('') : '<p class="micro">More official quick links will appear after verification.</p>'}</div>
   </section>`;
@@ -189,11 +273,18 @@ function renderWorld(id) {
   <section class="section"><div class="section-head"><h2>Published inside this world</h2></div><div class="content-grid">${items.length ? items.map(contentCard).join('') : empty(`No ${item.name} releases published`, 'This world is ready for your real content. Drafts and private records stay out of this view.', item.icon)}</div></section>${footer()}</div>`;
 }
 
+function soundtrackSetupForm() {
+  const value = commandSpotifyUrl();
+  return `<form class="soundtrack-form" data-command-audio-form><div><p class="eyebrow">Official Spotify source</p><h2>Set the persistent Spotify dock</h2><p>Paste an official Spotify playlist, album, track, show, or episode link. The selection stays in this browser and remains visible as you switch sections.</p></div><label>Spotify URL<input name="spotifyUrl" type="url" inputmode="url" placeholder="https://open.spotify.com/playlist/..." value="${text(value)}" /></label><div class="form-actions"><button class="button button-primary" type="submit">Set command dock</button><button class="button button-quiet" type="button" data-audio-action="clear-spotify">Clear</button></div></form>`;
+}
+
 function renderMusic() {
-  const items = pub('music');
-  return `<div class="page"><header class="page-head"><div><p class="eyebrow">Fresh Start / official Spotify support</p><h1>LISTEN IN YOUR LANE</h1><p>Start with the verified Spotify editorial launchpad, then return for more official playlists, albums, tracks and throwbacks.</p></div></header>
-  <div class="notice">Spotify controls the current contents of editorial playlists and the available playback controls. This app uses official embeds and external Spotify links only; it does not create a personal playlist or claim every requested artist is included.</div>
-  <div class="content-grid">${items.length ? items.map((item) => { const embed = spotifyEmbed(item.url); return `<article class="content-card"><div class="card-kicker">${badge(item.kind || 'Playlist', 'green')}</div><h3 class="card-title">${title(item.title)}</h3><p class="card-text">${text(item.description || 'Official link added by the owner.')}</p>${embed ? `<div class="embed-shell"><iframe title="Spotify: ${title(item.title)}" src="${embed}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe><div class="embed-note">Official Spotify embed</div></div>` : ''}<div class="card-actions">${safeLink(item.url, 'Open in Spotify')}</div></article>`; }).join('') : empty('Music links are not set yet', 'No additional official music selections are available yet. Nothing has been guessed.', '♫')}</div>${footer()}</div>`;
+  const items = pub('music').filter((item) => item.defaultKey !== 'fresh-rap-v1');
+  return `<div class="page"><header class="page-head"><div><p class="eyebrow">Command sound / official sources only</p><h1>LISTEN IN YOUR LANE</h1><p>West Coast rap, Bay Area, California punk, and old-school outlaw & western are organized as official Spotify search starting points—not a claimed playlist or unlicensed music library.</p></div></header>
+  <div class="notice"><strong>How playback works:</strong> the original dark synth ambient sound starts only after you press its button. Browsers and Spotify require your own play action; the persistent dock keeps your selected official source visible while you move through the site.</div>
+  ${soundtrackSetupForm()}
+  <section class="section"><div class="section-head"><div><p class="eyebrow">Owner-stated starting points</p><h2>Open official searches</h2></div><p class="section-note">Artists are listed because you named them; availability is controlled by Spotify.</p></div><div class="music-library-grid">${MUSIC_LIBRARY.map((group) => `<article class="music-library-card"><p class="eyebrow">${text(group.title)}</p><p>${text(group.note)}</p><div class="card-actions">${group.queries.map((query) => `<a class="button button-metal" href="${spotifySearchUrl(query)}" target="_blank" rel="noreferrer noopener">${text(query)} ↗</a>`).join('')}</div></article>`).join('')}</div></section>
+  <section class="section"><div class="section-head"><div><p class="eyebrow">Owner-added official sources</p><h2>Saved Spotify links</h2></div></div><div class="content-grid">${items.length ? items.map((item) => { const embed = spotifyEmbed(item.url); return `<article class="content-card"><div class="card-kicker">${badge(item.kind || 'Playlist', 'green')}</div><h3 class="card-title">${title(item.title)}</h3><p class="card-text">${text(item.description || 'Official link added by the owner.')}</p>${embed ? `<div class="embed-shell"><iframe title="Spotify: ${title(item.title)}" src="${embed}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe><div class="embed-note">Official Spotify embed</div></div>` : ''}<div class="card-actions"><button class="button button-primary" type="button" data-audio-action="use-spotify" data-spotify-url="${escapeHtml(item.url)}">Use in dock</button>${safeLink(item.url, 'Open in Spotify')}</div></article>`; }).join('') : empty('No owner-added Spotify links yet', 'Use Owner Studio to add official Spotify URLs. The old editorial default was removed from the command music library.', '♫')}</div></section>${footer()}</div>`;
 }
 
 function pocketNote() {
@@ -202,6 +293,23 @@ function pocketNote() {
 
 function pocketFavoriteList() {
   try { return localStorage.getItem('rizen-pocket-google-maps-list-v1') || ''; } catch { return ''; }
+}
+
+function tacticalMapSpot() {
+  if (activeTacticalSpotId === 'current-location' && pocketLocation) return { id: 'current-location', name: 'Current location', query: `${pocketLocation.latitude.toFixed(5)},${pocketLocation.longitude.toFixed(5)}` };
+  return tacticalSpots().find((spot) => spot.id === activeTacticalSpotId) || { id: 'phoenix-base', name: PHOENIX_BASE.label, query: PHOENIX_BASE.label };
+}
+
+function renderTacticalMap() {
+  const active = tacticalMapSpot();
+  const spots = tacticalSpots();
+  const coordinates = commandCoordinates();
+  const gasQuery = pocketLocation ? `gas stations near ${pocketLocation.latitude.toFixed(5)},${pocketLocation.longitude.toFixed(5)}` : `gas stations near ${PHOENIX_BASE.label}`;
+  return `<section class="section pocket-section tactical-map-section"><div class="section-head"><div><p class="eyebrow">Personal map console</p><h2>Tactical map & saved spots</h2></div><p class="section-note">Locations are saved only in this browser. Google Maps opens separately for directions, reviews, hours, and current public details.</p></div>
+    <div class="tactical-map-layout"><article class="tactical-map-frame"><div class="tactical-map-label"><span>ACTIVE MARKER</span><strong>${title(active.name)}</strong><small>${text(active.query)}</small></div><iframe title="Tactical map — ${title(active.name)}" src="${googleMapsEmbed(active.query)}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe><div class="tactical-map-actions"><button class="button button-primary" data-pocket-action="tactical-location">Use my location</button><a class="button button-metal" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(active.query)}" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a></div></article>
+      <aside class="tactical-map-controls"><div class="map-control-head"><span class="pocket-icon">⌖</span><div><h3>Saved spots</h3><p>Add a nickname and an address, place, or Maps search. Nothing is published by this site.</p></div></div><form class="tactical-spot-form" data-tactical-spot-form><label>Spot nickname<input name="spotName" required maxlength="60" placeholder="Tattoo shop / chill spot / supply run" /></label><label>Address or place<input name="spotQuery" required maxlength="180" placeholder="Street address, business, park, or landmark" /></label><button class="button button-primary" type="submit">Add to tactical map</button></form><div class="tactical-spot-list">${spots.length ? spots.map((spot) => `<article class="tactical-spot"><div><strong>${title(spot.name)}</strong><small>${text(spot.query)}</small></div><div><button class="button button-metal" data-pocket-action="tactical-focus" data-spot-id="${escapeHtml(spot.id)}">View</button><button class="button button-danger" data-pocket-action="tactical-remove" data-spot-id="${escapeHtml(spot.id)}">Remove</button></div></article>`).join('') : '<p class="micro">No custom spots saved yet. Add only locations you want available on this device.</p>'}</div></aside>
+    </div><article class="fuel-watch"><span class="pocket-icon">⛽</span><div><p class="eyebrow">Fuel watch</p><h3>Cheapest nearby prices require a connected price provider</h3><p>THE RIZEN does not have a verified gas-price feed, so it will not make up three or four prices. Use Google Maps to see nearby stations and current listings; a live price API can be added later with an approved provider key.</p></div><a class="button button-primary" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gasQuery)}" target="_blank" rel="noopener noreferrer">Find nearby gas ↗</a></article>
+  </section>`;
 }
 
 function isGoogleMapsUrl(value) {
@@ -246,7 +354,7 @@ function renderPocket() {
       <form class="places-search" data-pocket-places-form><label for="pocket-places-query">Search Google Maps near you</label><div class="places-search-row"><input id="pocket-places-query" type="search" placeholder="Coffee, comic shop, tacos, park…" autocomplete="off" /><button class="button button-primary" type="submit">Search Maps</button></div><p class="micro">Your words and approximate location stay in this browser until Google Maps opens in a separate tab.</p></form>
       <article class="places-favorites"><span class="pocket-icon">★</span><div><h3>My favorite spots</h3><p>Paste the share link for your own Google Maps saved list. It stays private on this device and opens only when you choose it.</p></div><label for="pocket-favorite-link">Google Maps saved-list link</label><div class="places-search-row"><input id="pocket-favorite-link" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/..." value="${text(pocketFavoriteList())}" /><button class="button button-quiet" type="button" data-pocket-action="favorite-save">Save on this device</button><button class="button button-primary" type="button" data-pocket-action="favorite-open">Open my spots</button></div></article>
     </div>
-  </section>
+  </section>${renderTacticalMap()}
   <section class="section pocket-section"><div class="section-head"><div><p class="eyebrow">Work calculator kit</p><h2>Floor & dilution math</h2></div><p class="section-note">Enter the coverage rate printed on your actual product label.</p></div>
     <div class="pocket-calc-grid">
       <article class="pocket-tool"><span class="pocket-icon">▥</span><h3>Square footage & finish</h3><div class="calc-fields"><label>Length (ft)<input data-pocket-calc-input="floor-length" type="number" min="0" step="0.1" inputmode="decimal" /></label><label>Width (ft)<input data-pocket-calc-input="floor-width" type="number" min="0" step="0.1" inputmode="decimal" /></label><label>Coverage / gallon<input data-pocket-calc-input="floor-coverage" type="number" min="0" step="1" inputmode="decimal" placeholder="From label" /></label></div><p class="tool-output" data-pocket-floor-output>Enter length and width to calculate square feet.</p></article>
@@ -381,10 +489,14 @@ function pageForRoute() {
 function updatePhoenixClock() {
   const time = document.querySelector('[data-phx-time]');
   const date = document.querySelector('[data-phx-date]');
-  if (!time || !date) return;
   const now = new Date();
-  time.textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Phoenix', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
-  date.textContent = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Phoenix', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(now);
+  const formattedTime = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Phoenix', hour: 'numeric', minute: '2-digit', hour12: true }).format(now);
+  const formattedDate = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Phoenix', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(now);
+  if (time) time.textContent = formattedTime;
+  if (date) date.textContent = formattedDate;
+  const commandTime = document.querySelector('[data-command-time]'); const commandDate = document.querySelector('[data-command-date]');
+  if (commandTime) commandTime.textContent = formattedTime;
+  if (commandDate) commandDate.textContent = formattedDate;
 }
 
 async function hydratePhoenixBriefing() {
@@ -392,19 +504,45 @@ async function hydratePhoenixBriefing() {
   const detail = document.querySelector('[data-phx-weather-detail]');
   updatePhoenixClock();
   phoenixClockTimer = window.setInterval(updatePhoenixClock, 30000);
-  if (!weather || !detail) return;
+  const commandWeather = document.querySelector('[data-command-weather]');
+  const commandWeatherDetail = document.querySelector('[data-command-weather-detail]');
+  const commandWind = document.querySelector('[data-command-wind]');
+  const commandPrecip = document.querySelector('[data-command-precip]');
+  const commandPressure = document.querySelector('[data-command-pressure]');
+  const commandSun = document.querySelector('[data-command-sun]');
+  if (!weather && !commandWeather) return;
   try {
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=33.4484&longitude=-112.0740&current=temperature_2m,apparent_temperature,weather_code,is_day&temperature_unit=fahrenheit&timezone=America%2FPhoenix';
+    const coordinates = commandCoordinates();
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(coordinates.latitude)}&longitude=${encodeURIComponent(coordinates.longitude)}&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,wind_direction_10m,precipitation,surface_pressure&daily=sunrise,sunset&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FPhoenix`;
     const response = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`Weather request returned ${response.status}`);
     const payload = await response.json();
     const current = payload.current;
     if (!current || typeof current.temperature_2m !== 'number') throw new Error('Weather data was incomplete');
-    weather.textContent = `${Math.round(current.temperature_2m)}°F · ${weatherLabel(current.weather_code)}`;
-    detail.textContent = `Feels like ${Math.round(current.apparent_temperature)}°F · Updated ${current.time || 'recently'} Phoenix time.`;
+    const weatherText = `${Math.round(current.temperature_2m)}°F · ${weatherLabel(current.weather_code)}`;
+    const weatherDetail = `Feels like ${Math.round(current.apparent_temperature)}°F · Updated ${current.time || 'recently'} Phoenix time.`;
+    if (weather) weather.textContent = weatherText;
+    if (detail) detail.textContent = weatherDetail;
+    if (commandWeather) commandWeather.textContent = `${Math.round(current.temperature_2m)}°F`;
+    if (commandWeatherDetail) commandWeatherDetail.textContent = `${weatherLabel(current.weather_code)} · feels ${Math.round(current.apparent_temperature)}°F`;
+    if (commandWind) commandWind.textContent = `${Math.round(current.wind_speed_10m || 0)} mph ${windDirection(current.wind_direction_10m)}`;
+    if (commandPrecip) commandPrecip.textContent = `Precip ${Number(current.precipitation || 0).toFixed(2)} in`;
+    if (commandPressure) commandPressure.textContent = current.surface_pressure ? `${Math.round(current.surface_pressure)} hPa` : '—';
+    const formatSun = (value) => {
+      if (!value || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return '—';
+      const hour = Number(value.slice(11, 13)); const minute = value.slice(14, 16);
+      return `${hour % 12 || 12}:${minute} ${hour >= 12 ? 'PM' : 'AM'}`;
+    };
+    if (commandSun) commandSun.textContent = `Rise ${formatSun(payload.daily?.sunrise?.[0])} · Set ${formatSun(payload.daily?.sunset?.[0])}`;
   } catch {
-    weather.textContent = 'Weather unavailable';
-    detail.textContent = 'Refresh later to retry the public Phoenix weather feed.';
+    if (weather) weather.textContent = 'Weather unavailable';
+    if (detail) detail.textContent = 'Refresh later to retry the public Phoenix weather feed.';
+    if (commandWeather) commandWeather.textContent = 'Unavailable';
+    if (commandWeatherDetail) commandWeatherDetail.textContent = 'Refresh later to retry the public weather feed.';
+    if (commandWind) commandWind.textContent = '—';
+    if (commandPrecip) commandPrecip.textContent = 'Precipitation —';
+    if (commandPressure) commandPressure.textContent = '—';
+    if (commandSun) commandSun.textContent = 'Sunrise / sunset —';
   }
 }
 
@@ -412,7 +550,8 @@ function render() {
   if (phoenixClockTimer) { window.clearInterval(phoenixClockTimer); phoenixClockTimer = undefined; }
   if (routeName() !== 'pocket') { if (pocketTimerId) { window.clearInterval(pocketTimerId); pocketTimerId = undefined; } stopTorch(); }
   app.innerHTML = shell(pageForRoute());
-  if (routeName() === 'home') hydratePhoenixBriefing();
+  renderCommandAudioDock();
+  hydratePhoenixBriefing();
   if (routeName() === 'pocket') { resetPocketTimer(); updatePocketCalculators(); updatePocketPlaceStatus(); }
 }
 
@@ -447,7 +586,13 @@ async function handleSubmit(event) {
     if (hash !== state.security.pinHash) return notice('That owner passphrase does not match this browser profile.', 'error');
     setOwnerSession(true); notice('Owner Studio unlocked.'); render(); return;
   }
+  if (form.matches('[data-command-audio-form]')) {
+    event.preventDefault(); const url = String(new FormData(form).get('spotifyUrl') || '').trim();
+    if (!url) { localSet('rizen-command-spotify-url-v1', ''); renderCommandAudioDock(); notice('Command Spotify source cleared from this device.'); return; }
+    useSpotifyInDock(url); return;
+  }
   if (form.matches('[data-pocket-places-form]')) { event.preventDefault(); searchPocketPlaces(); return; }
+  if (form.matches('[data-tactical-spot-form]')) { event.preventDefault(); saveTacticalSpot(form); return; }
   if (form.id === 'record-form') { event.preventDefault(); await handleRecordForm(form); return; }
   if (form.id === 'brand-form') {
     event.preventDefault(); state.brand = { ...state.brand, ...Object.fromEntries(new FormData(form).entries()) }; await save(); notice('Brand settings saved locally.'); render();
@@ -548,8 +693,11 @@ function requestPocketLocation() {
   navigator.geolocation.getCurrentPosition(
     (position) => {
       pocketLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      activeTacticalSpotId = 'current-location';
       updatePocketPlaceStatus();
-      notice('Location is ready for Google Maps during this browser session only.');
+      if (routeName() === 'pocket') render();
+      else hydratePhoenixBriefing();
+      notice('Location is ready for Maps and the command weather rail during this browser session only.');
     },
     (error) => {
       updatePocketPlaceStatus();
@@ -584,7 +732,42 @@ function openPocketFavoriteList() {
   openGoogleMaps(url);
 }
 
-async function handlePocketAction(action) {
+function saveTacticalSpot(form) {
+  const data = new FormData(form); const name = String(data.get('spotName') || '').trim(); const query = String(data.get('spotQuery') || '').trim();
+  if (!name || !query) return notice('Add both a spot nickname and an address, place, or landmark.', 'error');
+  const spot = { id: crypto.randomUUID ? crypto.randomUUID() : `spot_${Date.now()}`, name: name.slice(0, 60), query: query.slice(0, 180) };
+  const spots = tacticalSpots(); spots.unshift(spot);
+  if (!saveTacticalSpots(spots)) return notice('This browser did not allow local spot storage.', 'error');
+  activeTacticalSpotId = spot.id; notice('Tactical spot saved on this device.'); render();
+}
+
+function focusTacticalSpot(id) { activeTacticalSpotId = id; render(); }
+function removeTacticalSpot(id) {
+  const remaining = tacticalSpots().filter((spot) => spot.id !== id);
+  if (!saveTacticalSpots(remaining)) return notice('This browser did not allow local spot storage.', 'error');
+  if (activeTacticalSpotId === id) activeTacticalSpotId = '';
+  notice('Tactical spot removed from this device.'); render();
+}
+
+function openFuelSearch() {
+  const coordinates = commandCoordinates();
+  const query = pocketLocation ? `gas stations near ${coordinates.latitude.toFixed(5)},${coordinates.longitude.toFixed(5)}` : `gas stations near ${PHOENIX_BASE.label}`;
+  openGoogleMaps(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`);
+}
+
+function useSpotifyInDock(url) {
+  if (!spotifyEmbed(url)) return notice('Paste an official Spotify playlist, album, track, show, or episode link.', 'error');
+  if (!localSet('rizen-command-spotify-url-v1', url)) return notice('This browser did not allow local soundtrack storage.', 'error');
+  renderCommandAudioDock(); notice('Spotify source is set in the persistent command dock.');
+}
+
+function handleAudioAction(action, target) {
+  if (action === 'ambient-toggle') return commandAmbient ? stopCommandAmbient() : startCommandAmbient();
+  if (action === 'clear-spotify') { localSet('rizen-command-spotify-url-v1', ''); renderCommandAudioDock(); notice('Command Spotify source cleared from this device.'); return; }
+  if (action === 'use-spotify') return useSpotifyInDock(target.dataset.spotifyUrl || '');
+}
+
+async function handlePocketAction(action, target) {
   if (action === 'screen-white') return setScreenLight('white');
   if (action === 'screen-red') return setScreenLight('red');
   if (action === 'torch') return toggleTorch();
@@ -593,6 +776,10 @@ async function handlePocketAction(action) {
   if (action === 'timer-pause') return pausePocketTimer();
   if (action === 'timer-reset') return resetPocketTimer();
   if (action === 'places-location') return requestPocketLocation();
+  if (action === 'tactical-location') return requestPocketLocation();
+  if (action === 'tactical-focus') return focusTacticalSpot(target.dataset.spotId || '');
+  if (action === 'tactical-remove') return removeTacticalSpot(target.dataset.spotId || '');
+  if (action === 'fuel-search') return openFuelSearch();
   if (action === 'favorite-save') return savePocketFavoriteList();
   if (action === 'favorite-open') return openPocketFavoriteList();
   if (action === 'note-save') {
@@ -601,10 +788,11 @@ async function handlePocketAction(action) {
 }
 
 async function handleClick(event) {
-  const target = event.target.closest('[data-route], [data-pocket-action], [data-owner-section], [data-edit], [data-delete], [data-new-record], [data-cancel-edit], [data-logout], [data-export], [data-reset], [data-clear-watch]');
+  const target = event.target.closest('[data-route], [data-pocket-action], [data-audio-action], [data-owner-section], [data-edit], [data-delete], [data-new-record], [data-cancel-edit], [data-logout], [data-export], [data-reset], [data-clear-watch]');
   if (!target) return;
   if (target.dataset.route) { event.preventDefault(); go(target.dataset.route); return; }
-  if (target.dataset.pocketAction) { await handlePocketAction(target.dataset.pocketAction); return; }
+  if (target.dataset.audioAction) { event.preventDefault(); handleAudioAction(target.dataset.audioAction, target); return; }
+  if (target.dataset.pocketAction) { await handlePocketAction(target.dataset.pocketAction, target); return; }
   if (target.dataset.ownerSection) { ownerSection = target.dataset.ownerSection; editingId = ''; render(); return; }
   if (target.dataset.edit) { editingId = target.dataset.edit; render(); return; }
   if (target.dataset.newRecord) { editingId = ''; ownerSection = target.dataset.newRecord; render(); return; }
@@ -648,7 +836,7 @@ function handleKeydown(event) {
 async function boot() {
   state = await ensureState();
   render();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=public6').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=public9').catch(() => {});
 }
 
 document.addEventListener('submit', (event) => { handleSubmit(event).catch((error) => notice(`Save failed: ${error.message}`, 'error')); });

@@ -54,7 +54,8 @@ img, svg { max-width: 100%; }
 .local-badge::before { content: ''; width: .45rem; height: .45rem; border-radius: 50%; background: var(--green); box-shadow: 0 0 9px var(--green); }
 
 .main-wrap { grid-column: 2; min-width: 0; }
-.topbar { position: sticky; z-index: 12; top: 0; display: flex; align-items: center; gap: 1rem; min-height: 72px; padding: 1rem clamp(1rem, 3vw, 2.3rem); background: rgba(3,4,8,.8); border-bottom: 1px solid rgba(191,193,200,.12); backdrop-filter: blur(18px); }
+.command-header { position: sticky; z-index: 15; top: 0; background: rgba(3,4,8,.92); backdrop-filter: blur(18px); }
+.topbar { position: relative; z-index: 2; display: flex; align-items: center; gap: 1rem; min-height: 64px; padding: .75rem clamp(1rem, 3vw, 2.3rem); background: transparent; border-bottom: 1px solid rgba(191,193,200,.12); }
 .mobile-brand, .mobile-menu { display: none; }
 .search-box { position: relative; flex: 1; max-width: 620px; }
 .search-box input { width: 100%; height: 42px; padding: 0 2.8rem 0 1rem; border: 1px solid rgba(194,197,204,.2); border-radius: 4px; background: rgba(5,7,11,.82); color: var(--text); }
@@ -66,8 +67,8 @@ img, svg { max-width: 100%; }
 .owner-button { min-height: 40px; padding: 0 .95rem; border: 1px solid #71404a; border-radius: 4px; background: linear-gradient(180deg, #251018, #10070c); color: #fff; font-size: .8rem; font-weight: 900; }
 .owner-button:hover { background: linear-gradient(180deg, #41202b, #180a10); }
 
-main { padding: clamp(1.15rem, 3vw, 2.35rem); }
-.page { max-width: 1440px; margin: 0 auto; }
+main { padding: clamp(1.15rem, 3vw, 2.35rem) clamp(1rem, 2.4vw, 2.1rem) 9rem; }
+.page { position: relative; max-width: 1440px; margin: 0 auto; padding: clamp(1rem, 2.3vw, 1.75rem); border: 14px solid #6a4722; outline: 1px solid rgba(237,203,137,.9); outline-offset: -7px; background: radial-gradient(circle at 1px 1px, rgba(255,232,190,.035) 1px, transparent 1.2px) 0 0/5px 5px, radial-gradient(ellipse at 50% 0%, rgba(88,49,30,.24), transparent 45%), linear-gradient(135deg, rgba(32,20,15,.97), rgba(14,10,10,.98) 55%, rgba(24,14,12,.98)); box-shadow: inset 0 0 0 5px rgba(25,14,10,.85), inset 0 0 60px rgba(0,0,0,.62), 0 24px 75px rgba(0,0,0,.66); }
 .page-head { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin: .5rem 0 1.6rem; }
 .eyebrow { margin: 0 0 .52rem; color: var(--red-bright); font-size: .69rem; font-weight: 950; letter-spacing: .18em; text-transform: uppercase; }
 h1, h2, h3, p { margin-top: 0; }
@@ -81,8 +82,8 @@ p { color: var(--muted); line-height: 1.6; }
 .micro { color: var(--dim); font-size: .74rem; line-height: 1.45; }
 .mono { font-family: "Cascadia Code", Consolas, monospace; }
 
-.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 510px; display: flex; align-items: end; padding: clamp(1.5rem, 4vw, 3.4rem); border: 1px solid rgba(203,205,214,.14); border-radius: 0; background-color: transparent; background-image: linear-gradient(90deg, rgba(1,2,4,.94) 0%, rgba(1,2,4,.68) 44%, rgba(1,2,4,.13) 100%), url('./assets/adan-unfiltered-dark-tactical.png'); background-position: center; background-repeat: no-repeat; background-size: cover; box-shadow: var(--shadow); }
-.hero::before { content: ''; position: absolute; z-index: -2; inset: 0; background: linear-gradient(120deg, rgba(69,31,73,.2), transparent 55%, rgba(135,68,39,.13)); }
+.hero { position: relative; isolation: isolate; overflow: hidden; min-height: 330px; display: flex; align-items: end; padding: clamp(1.5rem, 4vw, 3.4rem); border: 1px solid rgba(202,169,101,.42); border-radius: 0; background: radial-gradient(ellipse at 100% 0%, rgba(96,48,29,.22), transparent 42%), linear-gradient(135deg, rgba(18,11,13,.96), rgba(35,22,19,.95) 58%, rgba(13,10,11,.97)); box-shadow: inset 0 0 50px rgba(0,0,0,.48); }
+.hero::before { content: ''; position: absolute; z-index: -2; inset: 0; background: repeating-linear-gradient(100deg, rgba(255,231,184,.012) 0 1px, transparent 1px 8px); }
 .hero::after { content: ''; position: absolute; z-index: -1; right: 0; bottom: 0; left: 0; height: 24%; background: linear-gradient(transparent, rgba(1,0,0,.68)); }
 .hero-content { max-width: 800px; }
 .hero-title-row { display: flex; align-items: end; gap: clamp(.8rem, 2vw, 1.6rem); }
@@ -229,7 +230,7 @@ tr:last-child td { border-bottom: 0; }
 .toast.show { transform: translateY(0); }
 .mobile-nav { display: none; }
 .pocket-page { padding-bottom: 1rem; }
-.pocket-hero { position: relative; display: flex; align-items: end; justify-content: space-between; gap: 1rem; overflow: hidden; min-height: 390px; padding: clamp(1.2rem, 4vw, 2.8rem); border: 1px solid rgba(203,205,214,.14); border-radius: 0; background: linear-gradient(100deg, rgba(1,2,4,.93), rgba(13,8,25,.66) 54%, rgba(1,2,4,.16)), url('./assets/adan-unfiltered-dark-tactical.png') center/cover; box-shadow: var(--shadow); }
+.pocket-hero { position: relative; display: flex; align-items: end; justify-content: space-between; gap: 1rem; overflow: hidden; min-height: 310px; padding: clamp(1.2rem, 4vw, 2.8rem); border: 1px solid rgba(202,169,101,.42); border-radius: 0; background: radial-gradient(ellipse at 100% 0%, rgba(80,44,68,.2), transparent 45%), linear-gradient(135deg, rgba(16,11,14,.98), rgba(39,23,24,.96) 58%, rgba(12,10,11,.98)); box-shadow: inset 0 0 48px rgba(0,0,0,.48); }
 .pocket-hero::after { content: 'POCKET'; position: absolute; right: -.03em; bottom: -.2em; color: rgba(254,238,208,.06); font-family: Impact, Haettenschweiler, sans-serif; font-size: clamp(5rem, 16vw, 13rem); line-height: .8; letter-spacing: .02em; pointer-events: none; }
 .pocket-hero > * { position: relative; z-index: 1; }
 .pocket-hero h1 { color: var(--graffiti-cream); text-shadow: 0 3px 18px #000; }
@@ -282,12 +283,71 @@ tr:last-child td { border-bottom: 0; }
 .footer strong { color: #e7e7eb; letter-spacing: .08em; }
 .footer-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
 
+.command-rail { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) auto; gap: 0; background: linear-gradient(90deg, rgba(9,8,10,.98), rgba(37,23,19,.96), rgba(8,9,10,.98)); border-bottom: 1px solid rgba(207,169,96,.42); box-shadow: 0 9px 24px rgba(0,0,0,.46); }
+.rail-unit { min-width: 0; padding: .48rem .75rem .58rem; border-right: 1px solid rgba(207,169,96,.22); }
+.rail-unit span, .rail-unit small { display: block; overflow: hidden; color: #c4ae85; font-size: .56rem; font-weight: 900; letter-spacing: .11em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.rail-unit strong { display: block; overflow: hidden; margin: .12rem 0; color: #f3e7cf; font-family: "Cascadia Code", Consolas, monospace; font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.rail-unit small { color: #b2aca5; font-size: .57rem; font-weight: 700; letter-spacing: .02em; text-transform: none; }
+.rail-fuel { background: rgba(100,58,31,.18); }
+.rail-action { margin-top: .26rem; padding: 0; border: 0; background: transparent; color: #e0b66f; font: inherit; font-size: .62rem; font-weight: 900; text-decoration: underline; }
+.rail-location { min-width: 98px; border: 0; background: linear-gradient(180deg, #673f25, #2c170f); color: #f8e5be; font-size: .67rem; font-weight: 900; }
+
+.command-audio-dock { position: fixed; z-index: 40; right: 1.15rem; bottom: 1rem; display: grid; width: min(480px, calc(100vw - 316px)); overflow: hidden; border: 1px solid rgba(206,173,105,.52); background: linear-gradient(135deg, rgba(13,12,14,.98), rgba(45,27,27,.96)); box-shadow: 0 18px 46px rgba(0,0,0,.64); backdrop-filter: blur(18px); }
+.audio-dock-head { display: flex; align-items: center; gap: .65rem; padding: .58rem .72rem; }
+.audio-dock-head > span:nth-child(2) { display: grid; min-width: 0; flex: 1; gap: .04rem; }
+.audio-dock-head b { color: #f2e4ca; font-size: .66rem; letter-spacing: .12em; }
+.audio-dock-head small { color: #b7aca2; font-size: .67rem; }
+.audio-dock-head .button { min-height: 32px; padding: .4rem .65rem; font-size: .67rem; }
+.audio-signal { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgba(211,175,104,.46); border-radius: 50%; color: #e6b96d; }
+.audio-dock-body { display: flex; align-items: center; gap: .6rem; padding: .55rem .72rem .7rem; border-top: 1px solid rgba(206,173,105,.2); }
+.audio-dock-body p { margin: 0; color: #c7c0bb; font-size: .72rem; line-height: 1.35; }
+.audio-dock-body a { color: #e4bc76; font-size: .7rem; font-weight: 900; white-space: nowrap; }
+.audio-dock-body iframe { width: 100%; height: 80px; border: 0; }
+.command-audio-dock.has-spotify .audio-dock-body { display: grid; }
+
+.soundtrack-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .9fr) auto; align-items: end; gap: 1rem; padding: 1.15rem; border: 1px solid rgba(202,169,101,.38); background: linear-gradient(135deg, rgba(56,31,30,.62), rgba(13,11,12,.72)); }
+.soundtrack-form h2 { margin-bottom: .28rem; }
+.soundtrack-form p { margin-bottom: 0; font-size: .8rem; }
+.soundtrack-form label, .tactical-spot-form label { display: grid; gap: .36rem; color: #dbc7a5; font-size: .68rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.soundtrack-form input, .tactical-spot-form input { min-height: 40px; padding: .5rem .64rem; border: 1px solid rgba(215,183,119,.35); border-radius: 0; background: rgba(4,5,7,.72); color: var(--text); }
+.music-library-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.music-library-card { padding: 1.05rem; border-left: 3px solid #a97b3e; background: linear-gradient(135deg, rgba(47,28,26,.58), rgba(10,10,12,.46)); }
+.music-library-card p { margin-bottom: .8rem; font-size: .82rem; }
+
+.tactical-map-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .85fr); gap: 1rem; }
+.tactical-map-frame { overflow: hidden; border: 2px solid rgba(200,164,91,.62); background: #07080a; box-shadow: inset 0 0 0 5px rgba(20,12,10,.94), 0 16px 35px rgba(0,0,0,.4); }
+.tactical-map-label { display: grid; gap: .16rem; padding: .7rem .85rem; background: linear-gradient(90deg, #18120e, #352216); }
+.tactical-map-label span { color: #d8b172; font-size: .6rem; font-weight: 900; letter-spacing: .13em; }
+.tactical-map-label strong { color: #f5e7cb; font-size: .95rem; }
+.tactical-map-label small { color: #b9ada3; font-family: "Cascadia Code", Consolas, monospace; font-size: .69rem; }
+.tactical-map-frame iframe { display: block; width: 100%; min-height: 385px; border: 0; filter: grayscale(.82) contrast(1.24) sepia(.28) hue-rotate(320deg) brightness(.7); }
+.tactical-map-actions { display: flex; flex-wrap: wrap; gap: .5rem; padding: .72rem; background: #111014; }
+.tactical-map-controls { padding: 1rem; border: 1px solid rgba(202,169,101,.34); background: linear-gradient(135deg, rgba(42,26,25,.62), rgba(9,10,12,.6)); }
+.map-control-head { display: flex; gap: .7rem; align-items: flex-start; }
+.map-control-head h3 { margin-bottom: .25rem; }
+.map-control-head p { margin-bottom: 1rem; font-size: .78rem; }
+.tactical-spot-form { display: grid; gap: .65rem; padding: .85rem 0 1rem; border-top: 1px solid rgba(202,169,101,.22); border-bottom: 1px solid rgba(202,169,101,.22); }
+.tactical-spot-list { display: grid; gap: .6rem; padding-top: .8rem; }
+.tactical-spot { display: flex; align-items: center; justify-content: space-between; gap: .65rem; padding-bottom: .55rem; border-bottom: 1px solid rgba(202,169,101,.16); }
+.tactical-spot strong, .tactical-spot small { display: block; }
+.tactical-spot strong { color: #eee1c8; font-size: .78rem; }
+.tactical-spot small { max-width: 190px; overflow: hidden; color: #aca39c; font-size: .67rem; text-overflow: ellipsis; white-space: nowrap; }
+.tactical-spot > div:last-child { display: flex; gap: .35rem; }
+.tactical-spot .button { min-height: 30px; padding: .3rem .5rem; font-size: .64rem; }
+.fuel-watch { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .8rem; align-items: center; margin-top: 1rem; padding: 1rem; border: 1px solid rgba(175,110,59,.44); background: linear-gradient(90deg, rgba(79,39,20,.46), rgba(17,13,11,.5)); }
+.fuel-watch h3 { margin-bottom: .25rem; }
+.fuel-watch p { margin-bottom: 0; font-size: .77rem; }
+
 @media (max-width: 1180px) {
   .world-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .content-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .phoenix-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pocket-tool-grid, .pocket-calc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .places-stage { grid-template-columns: 1fr; gap: 1.25rem; }
+  .command-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rail-location { grid-column: span 3; min-height: 34px; }
+  .soundtrack-form, .tactical-map-layout { grid-template-columns: 1fr; }
+  .command-audio-dock { width: min(480px, calc(100vw - 2rem)); }
 }
 @media (max-width: 920px) {
   .shell { grid-template-columns: 1fr; padding-bottom: 68px; }
@@ -308,14 +368,18 @@ tr:last-child td { border-bottom: 0; }
   .mobile-nav a { display: grid; place-items: center; gap: .15rem; color: var(--dim); font-size: .61rem; font-weight: 800; }
   .mobile-nav a.active { color: #fff; }
   .mobile-nav .m-icon { color: var(--red-bright); font-size: 1rem; }
+  .command-audio-dock { right: .75rem; bottom: 76px; width: calc(100vw - 1.5rem); }
+  .command-rail { overflow-x: auto; grid-template-columns: repeat(5, minmax(138px, 1fr)) 98px; }
+  .rail-location { grid-column: auto; }
 }
 @media (max-width: 680px) {
-  main { padding: 1rem; }
+  main { padding: .65rem .65rem 8.5rem; }
+  .page { padding: .85rem; border-width: 9px; outline-offset: -5px; }
   .topbar { gap: .55rem; }
   .mobile-brand b { display: none; }
   .topbar .owner-button { min-width: 42px; padding: 0 .55rem; font-size: 0; }
   .topbar .owner-button::before { content: '◉'; font-size: 1rem; }
-  .hero { min-height: 455px; padding: 1.15rem; border-radius: 12px; }
+  .hero { min-height: 320px; padding: 1.15rem; border-radius: 0; }
   .hero-title-row { align-items: center; }
   .hero-crown { width: 70px; }
   .hero h1 { font-size: 3.25rem; }
@@ -334,6 +398,12 @@ tr:last-child td { border-bottom: 0; }
   .places-favorites .pocket-icon { grid-row: auto; }
   .places-favorites > label, .places-favorites .places-search-row { grid-column: auto; }
   .places-search-row > .button { flex: 1 1 auto; }
+  .music-library-grid { grid-template-columns: 1fr; }
+  .tactical-map-frame iframe { min-height: 295px; }
+  .fuel-watch { grid-template-columns: auto minmax(0, 1fr); }
+  .fuel-watch .button { grid-column: 1 / -1; }
+  .audio-dock-head { align-items: flex-start; }
+  .audio-dock-head .button { white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

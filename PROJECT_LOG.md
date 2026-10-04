@@ -32,3 +32,11 @@
 - The creator reference was preserved on the right-side workstation with a deep-purple tactical shirt, chrome eyewear, and subtle silver accents in hair and goatee.
 - Artwork uses original masked-ranger, warlord, aerospace-sentinel, feline-warrior, and machine silhouettes—not branded or copied franchise characters, logos, or uniforms.
 - Rethemed the public shell, home hero, Pocket command wall, buttons, navigation, and cache to use the darker asset without changing published tools, Maps handoff, music links, or private-on-device behavior.
+
+## 2026-10-04 — Gold-frame command center and field tools
+
+- Shifted text-heavy content into a thick antique-gold, tattoo-shop-style frame with a clean dark-suede interior; original dark artwork remains a surrounding background rather than an illustration behind operational text.
+- Added a command rail visible at the top of every route: Phoenix time/date, live weather, wind speed and bearing, precipitation, surface pressure, sunrise, sunset, browser-only location option, and a clearly labeled fuel-search fallback.
+- Added a browser-local tactical map console. Users can save a nickname plus address/place, choose an active marker, remove it, use temporary current location, and hand off to Google Maps. No custom spot is published or sent to THE RIZEN.
+- Replaced the default editorial rap prompt with owner-stated West Coast / Bay Area, punk, and classic western Spotify search launch points. Added a persistent browser-local Spotify dock and an optional original Web Audio ambient synth; autoplay and unlicensed tracks are not used.
+- Fuel-price rows are deliberately not fabricated. Live price ranking remains a setup item because no verified gas-price provider is connected.
