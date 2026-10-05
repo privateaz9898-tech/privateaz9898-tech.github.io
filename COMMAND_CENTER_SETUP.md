@@ -6,6 +6,12 @@ Open the live site, then select **Music** to choose the permanent command soundt
 
 > **Playback rule:** Browsers and Spotify require a play action. The optional original ambient synth starts only after pressing **Start ambient**. THE RIZEN does not host or auto-play copyrighted songs.
 
+## Free CB radio listener
+
+Select **CB RADIO** in the top command bar, then select **Open free SDR radio**. THE RIZEN launches the official MyCB Radio SDR listener in its own tab because the provider deliberately blocks iframe embedding for security through `X-Frame-Options: DENY` and `frame-ancestors 'none'`. The official page controls receiver selection, AM / LSB / USB mode, channel selection, and its own available listening features.
+
+The command panel includes **CH 19** (27.185 MHz AM), **CH 9** (27.065 MHz AM), and **CH 38** (27.385 MHz LSB) as copyable tuning references. They do not remotely tune a receiver or transmit. Follow the provider's rules and applicable radio laws; this listener is not an emergency-service replacement.
+
 ## Add favorite places to the tactical map
 
 1. Open **Pocket Tools**.

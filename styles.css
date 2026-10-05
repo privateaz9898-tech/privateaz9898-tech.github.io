@@ -16,6 +16,11 @@
   --graffiti-orange: #8f4a2c;
   --graffiti-turquoise: #4d827a;
   --graffiti-cream: #e5e0e4;
+  --radio-purple: #56155D;
+  --radio-orange: #CA4E1D;
+  --radio-turquoise: #509A7C;
+  --radio-cream: #FEEED0;
+  --radio-black: #010000;
   --shadow: 0 24px 80px rgba(0,0,0,.7);
   color-scheme: dark;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -64,6 +69,10 @@ img, svg { max-width: 100%; }
 .topbar-spacer { flex: 1; }
 .music-chip { display: flex; align-items: center; gap: .65rem; max-width: 260px; padding: .42rem .7rem; border: 1px solid #344741; border-radius: 999px; background: rgba(7,15,16,.82); color: #d8e4df; font-size: .73rem; font-weight: 800; }
 .music-chip::before { content: '♫'; display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: #214f2b; color: #90efa7; }
+.radio-chip { display: grid; min-width: 118px; gap: .03rem; padding: .38rem .68rem; border: 1px solid var(--radio-orange); border-radius: 5px; background: linear-gradient(135deg, var(--radio-purple), var(--radio-black)); color: var(--radio-cream); text-align: left; }
+.radio-chip:hover, .radio-chip.is-open { border-color: var(--radio-turquoise); background: linear-gradient(135deg, rgba(80,154,124,.32), var(--radio-purple)); }
+.radio-chip span { font-size: .69rem; font-weight: 950; letter-spacing: .09em; }
+.radio-chip small { color: rgba(254,238,208,.72); font-size: .58rem; font-weight: 800; }
 .owner-button { min-height: 40px; padding: 0 .95rem; border: 1px solid #71404a; border-radius: 4px; background: linear-gradient(180deg, #251018, #10070c); color: #fff; font-size: .8rem; font-weight: 900; }
 .owner-button:hover { background: linear-gradient(180deg, #41202b, #180a10); }
 
@@ -292,6 +301,21 @@ tr:last-child td { border-bottom: 0; }
 .rail-action { margin-top: .26rem; padding: 0; border: 0; background: transparent; color: #e0b66f; font: inherit; font-size: .62rem; font-weight: 900; text-decoration: underline; }
 .rail-location { min-width: 98px; border: 0; background: linear-gradient(180deg, #673f25, #2c170f); color: #f8e5be; font-size: .67rem; font-weight: 900; }
 
+.command-radio-console { display: grid; grid-template-columns: minmax(255px, 1.05fr) minmax(220px, .72fr); gap: .9rem 1.25rem; padding: 1rem clamp(1rem, 3vw, 2.3rem) 1.05rem; border-bottom: 1px solid var(--radio-turquoise); background: linear-gradient(115deg, var(--radio-black), var(--radio-purple) 52%, var(--radio-black)); box-shadow: inset 0 -18px 40px rgba(0,0,0,.36); }
+.radio-console-intro h2 { margin: .05rem 0 .38rem; color: var(--radio-cream); font-family: Impact, Haettenschweiler, sans-serif; font-size: clamp(1.25rem, 2.4vw, 1.9rem); letter-spacing: .06em; }
+.radio-console-intro p:not(.eyebrow) { max-width: 650px; margin-bottom: 0; color: #d7d0cd; font-size: .78rem; line-height: 1.45; }
+.radio-console-actions { display: flex; flex-wrap: wrap; align-content: center; align-items: center; justify-content: flex-end; gap: .55rem; }
+.radio-console-actions .button { min-height: 38px; }
+.radio-console-actions small { width: 100%; color: #d3c6bd; font-size: .64rem; text-align: right; }
+.radio-preset-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; }
+.radio-preset { display: grid; gap: .18rem; padding: .72rem .78rem; border: 1px solid rgba(254,238,208,.2); background: linear-gradient(145deg, rgba(1,0,0,.6), rgba(80,154,124,.1)); }
+.radio-preset span { color: var(--radio-orange); font-size: .62rem; font-weight: 950; letter-spacing: .1em; }
+.radio-preset strong { color: var(--radio-cream); font-family: "Cascadia Code", Consolas, monospace; font-size: 1rem; }
+.radio-preset small { color: #bfc8c4; font-size: .68rem; }
+.radio-preset button { justify-self: start; margin-top: .35rem; padding: .25rem 0; border: 0; background: transparent; color: var(--radio-turquoise); font-size: .66rem; font-weight: 900; text-decoration: underline; }
+.radio-console-note { grid-column: 1 / -1; margin: 0; color: #d5cfca; font-size: .67rem; line-height: 1.45; }
+.radio-console-note strong { color: var(--radio-cream); }
+
 .command-audio-dock { position: fixed; z-index: 40; right: 1.15rem; bottom: 1rem; display: grid; width: min(480px, calc(100vw - 316px)); overflow: hidden; border: 1px solid rgba(206,173,105,.52); background: linear-gradient(135deg, rgba(13,12,14,.98), rgba(45,27,27,.96)); box-shadow: 0 18px 46px rgba(0,0,0,.64); backdrop-filter: blur(18px); }
 .audio-dock-head { display: flex; align-items: center; gap: .65rem; padding: .58rem .72rem; }
 .audio-dock-head > span:nth-child(2) { display: grid; min-width: 0; flex: 1; gap: .04rem; }
@@ -346,7 +370,9 @@ tr:last-child td { border-bottom: 0; }
   .places-stage { grid-template-columns: 1fr; gap: 1.25rem; }
   .command-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .rail-location { grid-column: span 3; min-height: 34px; }
-  .soundtrack-form, .tactical-map-layout { grid-template-columns: 1fr; }
+  .soundtrack-form, .tactical-map-layout, .command-radio-console { grid-template-columns: 1fr; }
+  .radio-console-actions { justify-content: flex-start; }
+  .radio-console-actions small { text-align: left; }
   .command-audio-dock { width: min(480px, calc(100vw - 2rem)); }
 }
 @media (max-width: 920px) {
@@ -399,6 +425,11 @@ tr:last-child td { border-bottom: 0; }
   .places-favorites > label, .places-favorites .places-search-row { grid-column: auto; }
   .places-search-row > .button { flex: 1 1 auto; }
   .music-library-grid { grid-template-columns: 1fr; }
+  .radio-chip { min-width: 44px; padding: .42rem .5rem; text-align: center; }
+  .radio-chip span { font-size: 0; }
+  .radio-chip span::before { content: '▥'; font-size: 1rem; }
+  .radio-chip small { display: none; }
+  .radio-preset-grid { grid-template-columns: 1fr; }
   .tactical-map-frame iframe { min-height: 295px; }
   .fuel-watch { grid-template-columns: auto minmax(0, 1fr); }
   .fuel-watch .button { grid-column: 1 / -1; }

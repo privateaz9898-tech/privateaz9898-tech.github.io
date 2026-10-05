@@ -17,9 +17,16 @@ let pocketLocation = null;
 let commandRailTimer;
 let commandAmbient;
 let activeTacticalSpotId = '';
+let commandRadioOpen = false;
 const app = document.querySelector('#app');
 
 const PHOENIX_BASE = { latitude: 33.4484, longitude: -112.0740, label: 'Phoenix, Arizona' };
+const CB_RADIO_URL = 'https://mycbradio.org/app/sdr';
+const CB_PRESETS = [
+  { id: 'ch19', label: 'CH 19', frequency: '27.185 MHz', mode: 'AM', note: 'Highway / trucker monitor' },
+  { id: 'ch9', label: 'CH 9', frequency: '27.065 MHz', mode: 'AM', note: 'Traveler-assistance reference' },
+  { id: 'ch38', label: 'CH 38', frequency: '27.385 MHz', mode: 'LSB', note: 'SSB DX reference' }
+];
 const MUSIC_LIBRARY = [
   { title: 'West Coast / Bay Area', note: 'Owner-stated listening directions. Open an official Spotify search, then choose what you want to play.', queries: ['Tupac', 'E-40', 'West Coast gangster rap'] },
   { title: 'Rap cue awaiting confirmation', note: '“Brote” was noted by the owner. The exact artist spelling or official Spotify URL still needs confirmation.', queries: ['Brote'] },
@@ -118,6 +125,16 @@ function commandRail() {
   </section>`;
 }
 
+function commandRadioConsole() {
+  if (!commandRadioOpen) return '';
+  return `<section id="command-radio-console" class="command-radio-console" aria-label="CB radio listener console">
+    <div class="radio-console-intro"><p class="eyebrow">Free CB SDR / receive-only</p><h2>MYCB RADIO LISTENER</h2><p>Launch the official MyCB Radio SDR app for live receiver selection, AM / LSB / USB modes, channel controls, and audio. The provider blocks website embedding, so it opens safely in its own tab.</p></div>
+    <div class="radio-console-actions"><a class="button button-primary" href="${CB_RADIO_URL}" target="_blank" rel="noreferrer noopener">Open free SDR radio ↗</a><button class="button button-quiet" type="button" data-radio-action="toggle" aria-expanded="true">Close radio panel</button><small>Provider controls and listening rules apply.</small></div>
+    <div class="radio-preset-grid">${CB_PRESETS.map((preset) => `<article class="radio-preset"><span>${preset.label} / ${preset.mode}</span><strong>${preset.frequency}</strong><small>${preset.note}</small><button type="button" data-radio-action="copy-preset" data-radio-preset="${preset.id}">Copy frequency</button></article>`).join('')}</div>
+    <p class="radio-console-note"><strong>Reference only:</strong> the buttons copy a frequency reference; they do not tune or transmit. Use the official radio page to choose a receiver and operate its available listening controls. This is not an emergency-service replacement.</p>
+  </section>`;
+}
+
 function renderCommandAudioDock() {
   const dock = document.querySelector('#command-audio-dock');
   if (!dock) return;
@@ -171,9 +188,9 @@ function shell(page) {
       <header class="command-header"><div class="topbar">
           <a class="mobile-brand" href="#home" data-route="home">${crown()}<b>THE RIZEN</b></a>
           <label class="search-box"><span class="sr-only">Search published content</span><input id="global-search" value="${text(searchTerm)}" placeholder="Search published content, worlds, projects…" autocomplete="off" /><span class="search-icon">⌕</span></label>
-          <span class="topbar-spacer"></span><a class="music-chip" href="#music" data-route="music">${selectedSoundtrack ? 'Spotify dock set' : 'Set soundtrack'}</a>
+          <span class="topbar-spacer"></span><button class="radio-chip ${commandRadioOpen ? 'is-open' : ''}" type="button" data-radio-action="toggle" aria-controls="command-radio-console" aria-expanded="${commandRadioOpen}"><span>▥ CB RADIO</span><small>Free SDR listener</small></button><a class="music-chip" href="#music" data-route="music">${selectedSoundtrack ? 'Spotify dock set' : 'Set soundtrack'}</a>
           <span class="owner-button" aria-label="Owner dashboard status">Owner dashboard — private</span>
-        </div>${commandRail()}</header>
+        </div>${commandRail()}${commandRadioConsole()}</header>
       <main id="main-content">${page}</main>
       <nav class="mobile-nav" aria-label="Mobile navigation">
         ${[['home','Home'],['watch','Watch'],['pocket','Pocket'],['projects','Projects'],['more','More']].map(([key,label]) => `<a href="#${key === 'more' ? 'channels' : key}" data-route="${key === 'more' ? 'channels' : key}" class="${current === key ? 'active' : ''}"><span class="m-icon">${icons[key] || icons.more}</span><span>${label}</span></a>`).join('')}
@@ -767,6 +784,24 @@ function handleAudioAction(action, target) {
   if (action === 'use-spotify') return useSpotifyInDock(target.dataset.spotifyUrl || '');
 }
 
+async function copyRadioPreset(id) {
+  const preset = CB_PRESETS.find((item) => item.id === id);
+  if (!preset) return;
+  const reference = `${preset.label} — ${preset.frequency} ${preset.mode}`;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard access is unavailable');
+    await navigator.clipboard.writeText(reference);
+    notice(`${reference} copied. Open MyCB Radio to select a receiver and tune it there.`);
+  } catch {
+    notice(`${reference}. Clipboard access was unavailable; use this as a tuning reference in MyCB Radio.`, 'error');
+  }
+}
+
+function handleRadioAction(action, target) {
+  if (action === 'toggle') { commandRadioOpen = !commandRadioOpen; render(); return; }
+  if (action === 'copy-preset') return copyRadioPreset(target.dataset.radioPreset || '');
+}
+
 async function handlePocketAction(action, target) {
   if (action === 'screen-white') return setScreenLight('white');
   if (action === 'screen-red') return setScreenLight('red');
@@ -788,10 +823,11 @@ async function handlePocketAction(action, target) {
 }
 
 async function handleClick(event) {
-  const target = event.target.closest('[data-route], [data-pocket-action], [data-audio-action], [data-owner-section], [data-edit], [data-delete], [data-new-record], [data-cancel-edit], [data-logout], [data-export], [data-reset], [data-clear-watch]');
+  const target = event.target.closest('[data-route], [data-pocket-action], [data-audio-action], [data-radio-action], [data-owner-section], [data-edit], [data-delete], [data-new-record], [data-cancel-edit], [data-logout], [data-export], [data-reset], [data-clear-watch]');
   if (!target) return;
   if (target.dataset.route) { event.preventDefault(); go(target.dataset.route); return; }
   if (target.dataset.audioAction) { event.preventDefault(); handleAudioAction(target.dataset.audioAction, target); return; }
+  if (target.dataset.radioAction) { event.preventDefault(); await handleRadioAction(target.dataset.radioAction, target); return; }
   if (target.dataset.pocketAction) { await handlePocketAction(target.dataset.pocketAction, target); return; }
   if (target.dataset.ownerSection) { ownerSection = target.dataset.ownerSection; editingId = ''; render(); return; }
   if (target.dataset.edit) { editingId = target.dataset.edit; render(); return; }
@@ -836,7 +872,7 @@ function handleKeydown(event) {
 async function boot() {
   state = await ensureState();
   render();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=public9').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=public10').catch(() => {});
 }
 
 document.addEventListener('submit', (event) => { handleSubmit(event).catch((error) => notice(`Save failed: ${error.message}`, 'error')); });

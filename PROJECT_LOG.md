@@ -40,3 +40,10 @@
 - Added a browser-local tactical map console. Users can save a nickname plus address/place, choose an active marker, remove it, use temporary current location, and hand off to Google Maps. No custom spot is published or sent to THE RIZEN.
 - Replaced the default editorial rap prompt with owner-stated West Coast / Bay Area, punk, and classic western Spotify search launch points. Added a persistent browser-local Spotify dock and an optional original Web Audio ambient synth; autoplay and unlicensed tracks are not used.
 - Fuel-price rows are deliberately not fabricated. Live price ranking remains a setup item because no verified gas-price provider is connected.
+
+## 2026-10-04 — Top CB radio listener
+
+- Added a persistent **CB RADIO** control to the top command bar and a privacy-safe MyCB Radio listener panel with an official external launch button.
+- Verified that `https://mycbradio.org/app/sdr` is a free SDR listening application with receiver, channel, and AM / LSB / USB controls, but it blocks embedding through `X-Frame-Options: DENY` and `frame-ancestors 'none'`. THE RIZEN therefore does not frame, proxy, scrape, or simulate its interface.
+- Added local quick-reference cards for CH 19 (27.185 MHz AM), CH 9 (27.065 MHz AM), and CH 38 (27.385 MHz LSB). Copy buttons only copy references; they cannot tune or transmit.
+- The panel states its receive-only boundary, opens the official provider in a new tab, requests no radio-related location, microphone, or account access, and is not presented as an emergency-service replacement.
