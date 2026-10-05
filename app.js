@@ -18,6 +18,9 @@ let commandRailTimer;
 let commandAmbient;
 let activeTacticalSpotId = '';
 let commandRadioOpen = false;
+let commandRadioStatic;
+let radioSignalTimer;
+let radioSignalLevel = 54;
 const app = document.querySelector('#app');
 
 const PHOENIX_BASE = { latitude: 33.4484, longitude: -112.0740, label: 'Phoenix, Arizona' };
@@ -26,6 +29,12 @@ const CB_PRESETS = [
   { id: 'ch19', label: 'CH 19', frequency: '27.185 MHz', mode: 'AM', note: 'Highway / trucker monitor' },
   { id: 'ch9', label: 'CH 9', frequency: '27.065 MHz', mode: 'AM', note: 'Traveler-assistance reference' },
   { id: 'ch38', label: 'CH 38', frequency: '27.385 MHz', mode: 'LSB', note: 'SSB DX reference' }
+];
+const DEFAULT_COMMAND_MEMORIES = [
+  ...CB_PRESETS.map((preset) => ({ id: `cb-${preset.id}`, kind: 'cb', label: preset.label, target: `${preset.frequency} ${preset.mode}`, detail: preset.note, fixed: true })),
+  { id: 'music-west-coast', kind: 'music', label: 'West Coast rap', target: 'West Coast gangster rap', detail: 'Open official Spotify search', fixed: true },
+  { id: 'music-california-punk', kind: 'music', label: 'California punk', target: 'No Use for a Name Social Distortion', detail: 'Open official Spotify search', fixed: true },
+  { id: 'music-outlaw-western', kind: 'music', label: 'Outlaw western', target: 'Marty Robbins Johnny Cash Willie Nelson', detail: 'Open official Spotify search', fixed: true }
 ];
 const MUSIC_LIBRARY = [
   { title: 'West Coast / Bay Area', note: 'Owner-stated listening directions. Open an official Spotify search, then choose what you want to play.', queries: ['Tupac', 'E-40', 'West Coast gangster rap'] },
@@ -74,6 +83,14 @@ const save = async () => { await saveState(state); };
 function localGet(key, fallback = '') { try { return localStorage.getItem(key) || fallback; } catch { return fallback; } }
 function localSet(key, value) { try { localStorage.setItem(key, value); return true; } catch { return false; } }
 function commandSpotifyUrl() { return localGet('rizen-command-spotify-url-v1'); }
+function radioMemories() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('rizen-command-memories-v1') || '[]');
+    return Array.isArray(saved) ? saved.filter((item) => item && typeof item.id === 'string' && ['cb', 'music'].includes(item.kind) && typeof item.label === 'string' && typeof item.target === 'string').slice(0, 24) : [];
+  } catch { return []; }
+}
+function saveRadioMemories(memories) { return localSet('rizen-command-memories-v1', JSON.stringify(memories)); }
+function commandMemories() { return [...DEFAULT_COMMAND_MEMORIES, ...radioMemories()]; }
 function tacticalSpots() {
   try {
     const saved = JSON.parse(localStorage.getItem('rizen-tactical-spots-v1') || '[]');
@@ -127,12 +144,46 @@ function commandRail() {
 
 function commandRadioConsole() {
   if (!commandRadioOpen) return '';
+  const staticActive = !!commandRadioStatic;
+  const memories = commandMemories();
   return `<section id="command-radio-console" class="command-radio-console" aria-label="CB radio listener console">
     <div class="radio-console-intro"><p class="eyebrow">Free CB SDR / receive-only</p><h2>MYCB RADIO LISTENER</h2><p>Launch the official MyCB Radio SDR app for live receiver selection, AM / LSB / USB modes, channel controls, and audio. The provider blocks website embedding, so it opens safely in its own tab.</p></div>
     <div class="radio-console-actions"><a class="button button-primary" href="${CB_RADIO_URL}" target="_blank" rel="noreferrer noopener">Open free SDR radio ↗</a><button class="button button-quiet" type="button" data-radio-action="toggle" aria-expanded="true">Close radio panel</button><small>Provider controls and listening rules apply.</small></div>
-    <div class="radio-preset-grid">${CB_PRESETS.map((preset) => `<article class="radio-preset"><span>${preset.label} / ${preset.mode}</span><strong>${preset.frequency}</strong><small>${preset.note}</small><button type="button" data-radio-action="copy-preset" data-radio-preset="${preset.id}">Copy frequency</button></article>`).join('')}</div>
-    <p class="radio-console-note"><strong>Reference only:</strong> the buttons copy a frequency reference; they do not tune or transmit. Use the official radio page to choose a receiver and operate its available listening controls. This is not an emergency-service replacement.</p>
+    <div class="radio-immersive-grid"><article class="radio-signal-meter"><span>Live UI signal</span><strong data-radio-signal-label>${radioSignalLevel}%</strong><div class="radio-signal-bars" data-radio-signal-bars style="--signal-level:${radioSignalLevel}%" role="img" aria-label="Visual signal activity ${radioSignalLevel} percent"><i></i><i></i><i></i><i></i><i></i></div><small data-radio-signal-caption>Visual activity only — not MyCB receiver telemetry.</small></article><article class="radio-static-control"><span>Original static FX</span><strong>${staticActive ? 'ACTIVE' : 'OFF'}</strong><p>Optional generated radio-static texture. It is not live CB audio.</p><button class="button ${staticActive ? 'button-danger' : 'button-metal'}" type="button" data-radio-action="static-toggle">${staticActive ? 'Stop static FX' : 'Start static FX'}</button></article></div>
+    <section class="radio-memory-bank"><div class="radio-memory-head"><div><p class="eyebrow">Quick jump bank</p><h3>STATION & GENRE MEMORIES</h3><p>CB memories copy a reference. Music memories open a Spotify search. Custom memories remain only in this browser.</p></div><span class="radio-memory-count">${memories.length} slots</span></div><div class="radio-memory-grid">${memories.map((memory) => `<article class="radio-memory ${memory.kind === 'music' ? 'is-music' : 'is-cb'}"><span>${memory.kind === 'music' ? '♫ MUSIC' : '▥ CB'}</span><strong>${title(memory.label)}</strong><small>${text(memory.target)}</small><em>${text(memory.detail || (memory.kind === 'music' ? 'Spotify search' : 'Radio reference'))}</em><div><button type="button" data-radio-action="activate-memory" data-radio-memory="${escapeHtml(memory.id)}">${memory.kind === 'music' ? 'Open Spotify ↗' : 'Copy / tune ref'}</button>${memory.fixed ? '' : `<button type="button" class="memory-remove" data-radio-action="delete-memory" data-radio-memory="${escapeHtml(memory.id)}">Remove</button>`}</div></article>`).join('')}</div><form class="radio-memory-form" data-radio-memory-form><label>Memory label<input name="memoryLabel" maxlength="40" required placeholder="Night route / Bay Area" /></label><label>Type<select name="memoryKind"><option value="cb">CB reference</option><option value="music">Music genre</option></select></label><label>Frequency + mode or Spotify search<input name="memoryTarget" maxlength="120" required placeholder="27.185 MHz AM or West Coast rap" /></label><button class="button button-primary" type="submit">Save memory</button></form></section>
+    <p class="radio-console-note"><strong>Reference and effect boundary:</strong> the signal meter is a local visual animation and static FX are original generated sound. Neither reads, tunes, transmits, or reports actual receiver strength. Use the official radio page for real receiver status; this is not an emergency-service replacement.</p>
   </section>`;
+}
+
+function radioSignalSummary(level) { return level >= 75 ? 'Visual activity: strong' : level >= 48 ? 'Visual activity: steady' : 'Visual activity: low'; }
+function updateRadioSignalMeter() {
+  radioSignalLevel = Math.max(18, Math.min(96, radioSignalLevel + Math.round((Math.random() - .42) * 22)));
+  const label = document.querySelector('[data-radio-signal-label]'); const bars = document.querySelector('[data-radio-signal-bars]'); const caption = document.querySelector('[data-radio-signal-caption]');
+  if (label) label.textContent = `${radioSignalLevel}%`;
+  if (bars) { bars.style.setProperty('--signal-level', `${radioSignalLevel}%`); bars.setAttribute('aria-label', `Visual signal activity ${radioSignalLevel} percent`); bars.querySelectorAll('i').forEach((bar, index) => bar.classList.toggle('is-lit', radioSignalLevel >= (index + 1) * 20)); }
+  if (caption) caption.textContent = `${radioSignalSummary(radioSignalLevel)} — visual only, not MyCB telemetry.`;
+}
+function stopRadioSignalMeter() { if (radioSignalTimer) { window.clearInterval(radioSignalTimer); radioSignalTimer = undefined; } }
+function startRadioSignalMeter() { stopRadioSignalMeter(); updateRadioSignalMeter(); radioSignalTimer = window.setInterval(updateRadioSignalMeter, 1400); }
+
+function startRadioStatic() {
+  if (commandRadioStatic) return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return notice('This browser does not support the original radio-static effect.', 'error');
+  try {
+    const context = new AudioContext(); const buffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate); const samples = buffer.getChannelData(0);
+    for (let index = 0; index < samples.length; index += 1) samples[index] = Math.random() * 2 - 1;
+    const noise = context.createBufferSource(); noise.buffer = buffer; noise.loop = true;
+    const highpass = context.createBiquadFilter(); highpass.type = 'highpass'; highpass.frequency.value = 360;
+    const bandpass = context.createBiquadFilter(); bandpass.type = 'bandpass'; bandpass.frequency.value = 1540; bandpass.Q.value = .55;
+    const gain = context.createGain(); gain.gain.value = .018;
+    noise.connect(highpass); highpass.connect(bandpass); bandpass.connect(gain); gain.connect(context.destination); noise.start(); context.resume?.();
+    commandRadioStatic = { context, nodes: [noise], gain, highpass, bandpass }; render(); notice('Original radio-static effect is active. It continues while you move through the site.');
+  } catch { notice('Radio-static effect could not start in this browser.', 'error'); }
+}
+function stopRadioStatic() {
+  if (!commandRadioStatic) return;
+  commandRadioStatic.nodes.forEach((node) => { try { node.stop(); } catch {} }); commandRadioStatic.context?.close?.().catch?.(() => {}); commandRadioStatic = undefined; render(); notice('Radio-static effect stopped.');
 }
 
 function renderCommandAudioDock() {
@@ -188,7 +239,7 @@ function shell(page) {
       <header class="command-header"><div class="topbar">
           <a class="mobile-brand" href="#home" data-route="home">${crown()}<b>THE RIZEN</b></a>
           <label class="search-box"><span class="sr-only">Search published content</span><input id="global-search" value="${text(searchTerm)}" placeholder="Search published content, worlds, projects…" autocomplete="off" /><span class="search-icon">⌕</span></label>
-          <span class="topbar-spacer"></span><button class="radio-chip ${commandRadioOpen ? 'is-open' : ''}" type="button" data-radio-action="toggle" aria-controls="command-radio-console" aria-expanded="${commandRadioOpen}"><span>▥ CB RADIO</span><small>Free SDR listener</small></button><a class="music-chip" href="#music" data-route="music">${selectedSoundtrack ? 'Spotify dock set' : 'Set soundtrack'}</a>
+          <span class="topbar-spacer"></span><button class="radio-chip ${commandRadioOpen ? 'is-open' : ''} ${commandRadioStatic ? 'static-active' : ''}" type="button" data-radio-action="toggle" aria-controls="command-radio-console" aria-expanded="${commandRadioOpen}"><span>▥ CB RADIO</span><small>${commandRadioStatic ? 'Static FX active' : 'Free SDR listener'}</small></button><a class="music-chip" href="#music" data-route="music">${selectedSoundtrack ? 'Spotify dock set' : 'Set soundtrack'}</a>
           <span class="owner-button" aria-label="Owner dashboard status">Owner dashboard — private</span>
         </div>${commandRail()}${commandRadioConsole()}</header>
       <main id="main-content">${page}</main>
@@ -569,6 +620,7 @@ function render() {
   app.innerHTML = shell(pageForRoute());
   renderCommandAudioDock();
   hydratePhoenixBriefing();
+  if (commandRadioOpen) startRadioSignalMeter(); else stopRadioSignalMeter();
   if (routeName() === 'pocket') { resetPocketTimer(); updatePocketCalculators(); updatePocketPlaceStatus(); }
 }
 
@@ -608,6 +660,7 @@ async function handleSubmit(event) {
     if (!url) { localSet('rizen-command-spotify-url-v1', ''); renderCommandAudioDock(); notice('Command Spotify source cleared from this device.'); return; }
     useSpotifyInDock(url); return;
   }
+  if (form.matches('[data-radio-memory-form]')) { event.preventDefault(); saveRadioMemory(form); return; }
   if (form.matches('[data-pocket-places-form]')) { event.preventDefault(); searchPocketPlaces(); return; }
   if (form.matches('[data-tactical-spot-form]')) { event.preventDefault(); saveTacticalSpot(form); return; }
   if (form.id === 'record-form') { event.preventDefault(); await handleRecordForm(form); return; }
@@ -784,10 +837,8 @@ function handleAudioAction(action, target) {
   if (action === 'use-spotify') return useSpotifyInDock(target.dataset.spotifyUrl || '');
 }
 
-async function copyRadioPreset(id) {
-  const preset = CB_PRESETS.find((item) => item.id === id);
-  if (!preset) return;
-  const reference = `${preset.label} — ${preset.frequency} ${preset.mode}`;
+async function copyRadioReference(label, target) {
+  const reference = `${label} — ${target}`;
   try {
     if (!navigator.clipboard?.writeText) throw new Error('Clipboard access is unavailable');
     await navigator.clipboard.writeText(reference);
@@ -797,9 +848,43 @@ async function copyRadioPreset(id) {
   }
 }
 
-function handleRadioAction(action, target) {
+async function copyRadioPreset(id) {
+  const preset = CB_PRESETS.find((item) => item.id === id);
+  if (!preset) return;
+  return copyRadioReference(preset.label, `${preset.frequency} ${preset.mode}`);
+}
+
+function saveRadioMemory(form) {
+  const data = new FormData(form); const label = String(data.get('memoryLabel') || '').trim(); const kind = String(data.get('memoryKind') || ''); const target = String(data.get('memoryTarget') || '').trim();
+  if (!label || !target || !['cb', 'music'].includes(kind)) return notice('Give the memory a label, type, and CB reference or Spotify search.', 'error');
+  const id = crypto.randomUUID ? crypto.randomUUID() : `memory_${Date.now()}`;
+  const memories = radioMemories();
+  if (memories.length >= 24) return notice('This device already has 24 custom radio and music memories. Remove one before adding another.', 'error');
+  const memory = { id, kind, label: label.slice(0, 40), target: target.slice(0, 120), detail: kind === 'music' ? 'Spotify search' : 'Custom CB reference' };
+  if (!saveRadioMemories([memory, ...memories])) return notice('This browser did not allow memory storage.', 'error');
+  notice(`${memory.label} saved in this browser’s quick-jump bank.`); render();
+}
+
+function deleteRadioMemory(id) {
+  const remaining = radioMemories().filter((memory) => memory.id !== id);
+  if (!saveRadioMemories(remaining)) return notice('This browser did not allow memory storage.', 'error');
+  notice('Custom memory removed from this browser.'); render();
+}
+
+async function activateRadioMemory(id) {
+  const memory = commandMemories().find((item) => item.id === id);
+  if (!memory) return;
+  if (memory.kind === 'cb') return copyRadioReference(memory.label, memory.target);
+  const link = document.createElement('a'); link.href = spotifySearchUrl(memory.target); link.target = '_blank'; link.rel = 'noreferrer noopener'; document.body.append(link); link.click(); link.remove();
+  notice(`${memory.label} opened as an official Spotify search.`);
+}
+
+async function handleRadioAction(action, target) {
   if (action === 'toggle') { commandRadioOpen = !commandRadioOpen; render(); return; }
   if (action === 'copy-preset') return copyRadioPreset(target.dataset.radioPreset || '');
+  if (action === 'static-toggle') return commandRadioStatic ? stopRadioStatic() : startRadioStatic();
+  if (action === 'activate-memory') return activateRadioMemory(target.dataset.radioMemory || '');
+  if (action === 'delete-memory') return deleteRadioMemory(target.dataset.radioMemory || '');
 }
 
 async function handlePocketAction(action, target) {
@@ -872,7 +957,7 @@ function handleKeydown(event) {
 async function boot() {
   state = await ensureState();
   render();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=public10').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=public11').catch(() => {});
 }
 
 document.addEventListener('submit', (event) => { handleSubmit(event).catch((error) => notice(`Save failed: ${error.message}`, 'error')); });
@@ -881,5 +966,5 @@ document.addEventListener('change', (event) => { handleChange(event).catch((erro
 document.addEventListener('input', handleInput);
 document.addEventListener('keydown', handleKeydown);
 window.addEventListener('hashchange', () => { if (!location.hash) location.hash = 'home'; render(); });
-window.addEventListener('beforeunload', stopTorch);
+window.addEventListener('beforeunload', () => { stopTorch(); stopCommandAmbient(); stopRadioStatic(); stopRadioSignalMeter(); });
 boot().catch((error) => { app.innerHTML = `<main class="page"><section class="auth-card"><h1>LOCAL STORAGE ERROR</h1><p>${escapeHtml(error.message)}</p><p>Try opening the preview in a modern browser with IndexedDB enabled.</p></section></main>`; });

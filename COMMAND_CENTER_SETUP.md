@@ -12,6 +12,19 @@ Select **CB RADIO** in the top command bar, then select **Open free SDR radio**.
 
 The command panel includes **CH 19** (27.185 MHz AM), **CH 9** (27.065 MHz AM), and **CH 38** (27.385 MHz LSB) as copyable tuning references. They do not remotely tune a receiver or transmit. Follow the provider's rules and applicable radio laws; this listener is not an emergency-service replacement.
 
+### Station and genre memory bank
+
+Inside **CB RADIO**, use **STATION & GENRE MEMORIES** to jump to the supplied CB reference cards or owner-stated Spotify genre searches. Add your own local memory with a short label, then choose:
+
+- **CB reference:** save a frequency and mode such as `27.185 MHz AM`; selecting it copies the reference for use in MyCB Radio.
+- **Music genre:** save a Spotify search phrase such as `West Coast rap`; selecting it opens that official Spotify search in a new tab.
+
+Custom memories are stored only in the current browser. THE RIZEN does not tune MyCB Radio remotely or read a Spotify account.
+
+### Signal visualization and static effect
+
+**Live UI signal** is a local animated visual effect, not live signal strength from MyCB Radio. The provider does not expose receiver telemetry to this site and intentionally blocks embedding. Press **Start static FX** only when you want the optional original generated static texture; it requires a browser click, plays no licensed recording, and does not represent live CB audio. Use the official MyCB Radio tab for actual receiver, signal, and listening information.
+
 ## Add favorite places to the tactical map
 
 1. Open **Pocket Tools**.

@@ -47,3 +47,10 @@
 - Verified that `https://mycbradio.org/app/sdr` is a free SDR listening application with receiver, channel, and AM / LSB / USB controls, but it blocks embedding through `X-Frame-Options: DENY` and `frame-ancestors 'none'`. THE RIZEN therefore does not frame, proxy, scrape, or simulate its interface.
 - Added local quick-reference cards for CH 19 (27.185 MHz AM), CH 9 (27.065 MHz AM), and CH 38 (27.385 MHz LSB). Copy buttons only copy references; they cannot tune or transmit.
 - The panel states its receive-only boundary, opens the official provider in a new tab, requests no radio-related location, microphone, or account access, and is not presented as an emergency-service replacement.
+
+## 2026-10-04 — CB memory bank and immersive controls
+
+- Added a browser-local **Station & Genre Memory Bank** with supplied CB references and owner-stated West Coast rap, California punk, and outlaw-western Spotify search launch points.
+- Added an editable custom-memory form. A custom memory can save either a CB tuning reference or a Spotify genre search and can be removed locally. No radio, Spotify, or account data is sent to THE RIZEN.
+- Added a **Live UI Signal** meter as an explicitly labeled local visual animation. It is not MyCB receiver telemetry, not a radio-strength claim, and does not scrape or proxy the provider.
+- Added an optional original Web Audio **Static FX** toggle. It requires a direct user click, is generated in the browser, uses no licensed recording, and is labeled as an effect rather than live CB audio.
