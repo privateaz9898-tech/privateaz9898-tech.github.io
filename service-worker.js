@@ -1,4 +1,4 @@
-const CACHE = 'the-rizen-public-v11';
+const CACHE = 'the-rizen-dailytools12';
 const SHELL = ['./', './index.html', './styles.css', './app.js', './db.js', './manifest.webmanifest', './assets/rizen-crown.svg', './assets/adan-unfiltered-dark-tactical.png'];
 
 self.addEventListener('install', (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL))));

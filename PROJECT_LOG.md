@@ -54,3 +54,12 @@
 - Added an editable custom-memory form. A custom memory can save either a CB tuning reference or a Spotify genre search and can be removed locally. No radio, Spotify, or account data is sent to THE RIZEN.
 - Added a **Live UI Signal** meter as an explicitly labeled local visual animation. It is not MyCB receiver telemetry, not a radio-strength claim, and does not scrape or proxy the provider.
 - Added an optional original Web Audio **Static FX** toggle. It requires a direct user click, is generated in the browser, uses no licensed recording, and is labeled as an effect rather than live CB audio.
+
+## 2026-10-05 — Daily tools and transportation desk
+
+- Reframed the primary command interface as a daily-use tool rather than a gaming-oriented hub.
+- Hid the Gaming world from the Home archive display without deleting the underlying world or private records; deletion remains pending owner confirmation because the build brief requires the eight worlds to be preserved.
+- Added an official transportation desk to Pocket / Daily Tools with Valley Metro trip planning and bus-stop handoff, Uber, Lyft, MTM Health NEMT, and UnitedHealthcare Community Plan links.
+- Added a location-aware Google Maps bus-stop search handoff while keeping location permission optional and browser-local.
+- Did not invent fares, ride prices, health-plan eligibility, member IDs, reservations, or live gas prices.
+

@@ -24,6 +24,13 @@ let radioSignalLevel = 54;
 const app = document.querySelector('#app');
 
 const PHOENIX_BASE = { latitude: 33.4484, longitude: -112.0740, label: 'Phoenix, Arizona' };
+const TRANSPORT_SERVICES = [
+  { id: 'valley-metro', icon: '▤', name: 'Valley Metro', kind: 'Bus, light rail & bus stops', note: 'Trip planner, nearby stops, schedules, alerts and Smart Fare.', url: 'https://www.valleymetro.org/trip-planner', secondary: 'https://www.valleymetro.org/how-to-ride/online-tools/app', secondaryLabel: 'Valley Metro app' },
+  { id: 'uber', icon: 'U', name: 'Uber', kind: 'On-demand rides', note: 'Open the official rider flow to enter pickup and drop-off locations.', url: 'https://m.uber.com/looking', secondary: 'https://www.uber.com/us/en/', secondaryLabel: 'Uber home' },
+  { id: 'lyft', icon: 'L', name: 'Lyft', kind: 'On-demand rides', note: 'Open the official rider flow to request or schedule a ride.', url: 'https://www.lyft.com/rider', secondary: 'https://www.lyft.com/', secondaryLabel: 'Lyft home' },
+  { id: 'mtm', icon: 'M', name: 'MTM Transportation', kind: 'Non-emergency medical transportation', note: 'Use your plan instructions and member-services process to arrange eligible medical rides.', url: 'https://www.mtm-inc.net/healthcare/nemt/', secondary: 'tel:+18888890358', secondaryLabel: 'Call MTM / plan line' },
+  { id: 'uhc', icon: 'UH', name: 'UnitedHealthcare Community Plan', kind: 'Health-plan transportation', note: 'Open your plan information and verify eligibility, reservations and the number on your member card.', url: 'https://www.uhc.com/communityplan', secondary: 'https://www.uhcprovider.com/content/dam/provider/docs/public/commplan/az/references/AZ-UHCCP-Quick-Reference-Guide.pdf', secondaryLabel: 'Arizona quick reference' }
+];
 const CB_RADIO_URL = 'https://mycbradio.org/app/sdr';
 const CB_PRESETS = [
   { id: 'ch19', label: 'CH 19', frequency: '27.185 MHz', mode: 'AM', note: 'Highway / trucker monitor' },
@@ -48,7 +55,7 @@ const icons = {
 };
 const nav = [
   ['home', 'Home', icons.home], ['watch', 'Watch', icons.watch], ['live', 'Live', icons.live], ['music', 'Music', icons.music],
-  ['pocket', 'Pocket Tools', icons.pocket], ['projects', 'Projects', icons.projects], ['shop', 'Shop', icons.shop], ['collection', 'Collection', icons.collection], ['channels', 'Channels', icons.channels]
+  ['pocket', 'Daily Tools', icons.pocket], ['projects', 'Projects', icons.projects], ['shop', 'Shop', icons.shop], ['collection', 'Collection', icons.collection], ['channels', 'Channels', icons.channels]
 ];
 const ownerSections = [
   ['overview', 'Studio Overview'], ['project', 'Projects & Tasks'], ['content', 'Watch & Content'], ['music', 'Music Links'],
@@ -230,7 +237,7 @@ function shell(page) {
   return `<div class="shell">
     <aside class="sidebar" aria-label="Main navigation">
       <a href="#home" class="brand-lockup" data-route="home">${crown()}<span><span class="brand-title">${text(state.brand.appName)}</span><span class="brand-sub">${text(state.brand.supportName)}</span></span></a>
-      <p class="nav-label">Command center</p>
+      <p class="nav-label">Daily command tools</p>
       <nav class="nav-list">${nav.map(([key, label, icon]) => `<a class="nav-link ${current === key ? 'is-active' : ''}" href="#${key}" data-route="${key}"><span class="nav-mark">${icon}</span>${label}</a>`).join('')}</nav>
       <p class="nav-label">Official public site</p>
       <div class="sidebar-foot"><span class="local-badge">PUBLIC CREATOR SITE</span><br>Owner Studio is kept private and is migrating to a secure database-backed dashboard.</div>
@@ -251,7 +258,7 @@ function shell(page) {
 }
 
 function footer() {
-  return `<footer class="footer"><div class="footer-row"><span><strong>THE RIZEN</strong> / ${text(state.brand.supportName)} / ${text(state.brand.gamingIdentity)}</span><span>FOLLOW • LIKE • SHARE</span><span>Official public creator site • Owner dashboard remains private</span></div></footer>`;
+  return `<footer class="footer"><div class="footer-row"><span><strong>THE RIZEN</strong> / ${text(state.brand.supportName)}</span><span>FOLLOW • LIKE • SHARE</span><span>Official public creator site • Owner dashboard remains private</span></div></footer>`;
 }
 
 function freshMusicRecord() { return pub('music').find((item) => item.defaultKey !== 'fresh-rap-v1') || null; }
@@ -291,14 +298,14 @@ function renderHome() {
   const firstProduct = pub('product')[0];
   return `<div class="page">
     <section class="hero">
-      <div class="hero-content"><p class="eyebrow">Phoenix creator network / official public links</p><div class="hero-title-row">${crown('hero-crown')}<div><h1>${text(state.brand.appName)}</h1><p class="eyebrow">${text(state.brand.supportName)} · ${text(state.brand.gamingIdentity)}</p></div></div>
-      <p class="hero-description">Gaming, builds, tech, desert field notes, collectibles and real creator work—organized in one creator hub with official links, live Phoenix conditions and music launchpads.</p>
+      <div class="hero-content"><p class="eyebrow">Phoenix creator network / official public links</p><div class="hero-title-row">${crown('hero-crown')}<div><h1>${text(state.brand.appName)}</h1><p class="eyebrow">${text(state.brand.supportName)}</p></div></div>
+      <p class="hero-description">Daily tools, transportation, Phoenix field conditions, music, projects and real creator work—organized in one fast command center.</p>
       <div class="cta-row"><a class="button button-primary" href="#watch" data-route="watch">Watch releases</a><a class="button button-metal" href="#music" data-route="music">Listen</a><a class="button button-quiet" href="#projects" data-route="projects">Explore projects</a><a class="button button-quiet" href="#shop" data-route="shop">Shop</a></div></div>
     </section>
     <div class="notice"><strong>Official public site:</strong> private projects, drafts and Owner Studio records are intentionally not displayed here.</div>
     ${renderPhoenixBriefing()}
-    <section class="section"><div class="section-head"><div><p class="eyebrow">Eight worlds</p><h2>Enter the archive</h2></div><p class="section-note">Every world has its own screen, filter and verified public content.</p></div>
-      <div class="grid world-grid">${WORLDS.map((item) => `<a href="#world/${item.id}" data-route="world/${item.id}" class="world-card" style="--accent:${item.color}"><span class="world-number">VOLUME ${item.number}</span><span class="world-icon">${item.icon}</span><h3>${item.name}</h3><p>${item.summary}</p></a>`).join('')}</div>
+    <section class="section"><div class="section-head"><div><p class="eyebrow">Field archive</p><h2>Tools and worlds</h2></div><p class="section-note">Every world has its own screen, filter and verified public content.</p></div>
+      <div class="grid world-grid">${WORLDS.filter((item) => item.id !== 'gaming').map((item) => `<a href="#world/${item.id}" data-route="world/${item.id}" class="world-card" style="--accent:${item.color}"><span class="world-number">VOLUME ${item.number}</span><span class="world-icon">${item.icon}</span><h3>${item.name}</h3><p>${item.summary}</p></a>`).join('')}</div>
     </section>
     <section class="section split-grid">
       <div><div class="section-head"><div><p class="eyebrow">Latest signal</p><h2>Watch feed</h2></div><a class="button button-quiet" href="#watch" data-route="watch">Open Watch</a></div>${firstContent ? contentCard(firstContent) : empty('No releases published yet', 'The Watch feed stays clear until official releases are added.', '▶')}</div>
@@ -405,6 +412,19 @@ function updatePocketPlaceStatus() {
   detail.textContent = `${pocketLocation.latitude.toFixed(5)}, ${pocketLocation.longitude.toFixed(5)} · not sent to THE RIZEN.`;
 }
 
+function nearbyBusStopsUrl() {
+  const query = pocketLocation ? `bus stops near ${pocketLocation.latitude.toFixed(5)},${pocketLocation.longitude.toFixed(5)}` : 'Valley Metro bus stops near Phoenix, Arizona';
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function renderTransportTools() {
+  return `<section class="section pocket-section transport-section"><div class="section-head"><div><p class="eyebrow">Daily movement / official handoffs</p><h2>Transportation desk</h2></div><p class="section-note">One place to open the services you use. Accounts, bookings, eligibility and payments stay with the official provider.</p></div>
+    <div class="transport-hero"><div><span class="pocket-icon">⇄</span><h3>Get where you need to go</h3><p>Use location only when you want nearby results. THE RIZEN does not book rides, store member numbers or receive health-plan credentials.</p></div><div class="tool-actions"><button class="button button-primary" data-pocket-action="places-location">Use my location</button><a class="button button-metal" href="${nearbyBusStopsUrl()}" target="_blank" rel="noopener noreferrer">Find nearby bus stops ↗</a></div></div>
+    <div class="transport-grid">${TRANSPORT_SERVICES.map((service) => `<article class="transport-card"><span class="transport-mark">${text(service.icon)}</span><div><p class="eyebrow">${text(service.kind)}</p><h3>${text(service.name)}</h3><p>${text(service.note)}</p></div><div class="card-actions"><a class="button button-primary" href="${escapeHtml(service.url)}" target="_blank" rel="noopener noreferrer">Open ${text(service.name)} ↗</a><a class="button button-quiet" href="${escapeHtml(service.secondary)}" target="_blank" rel="noopener noreferrer">${text(service.secondaryLabel)} ↗</a></div></article>`).join('')}</div>
+    <div class="notice notice-gold"><strong>Health transportation reminder:</strong> MTM and UnitedHealthcare transportation benefits depend on your plan, eligibility, trip type and reservation rules. For an urgent or emergency situation, use emergency services—not this tool.</div>
+  </section>`;
+}
+
 function renderPocket() {
   return `<div class="page pocket-page"><header class="pocket-hero"><div><p class="eyebrow">Adam's Pocket / device-only utilities</p><h1>POCKET COMMAND</h1><p>Fast field tools for your Galaxy and laptop. Notes stay on this device. Camera, compass and screen controls ask for permission only when you press their tool.</p></div><div class="pocket-status"><span class="badge badge-green">Private on this device</span><span class="badge badge-gold">HTTPS tool set</span></div></header>
   <div class="notice notice-green"><strong>Privacy boundary:</strong> Pocket notes, sensor readings and calculator inputs are not sent to THE RIZEN, GitHub, a calendar, or any other service. Calendar opens through your own signed-in Google account.</div>
@@ -416,6 +436,7 @@ function renderPocket() {
       <article class="pocket-tool"><span class="pocket-icon">◷</span><h3>Timer</h3><p>Simple job, cleaning, cooking or break countdown. It stays on while this Pocket page is open.</p><div class="tool-inline"><label>Minutes <input data-pocket-minutes type="number" min="1" max="720" value="5" inputmode="numeric" /></label><strong data-pocket-timer>05:00</strong></div><div class="tool-actions"><button class="button button-primary" data-pocket-action="timer-start">Start</button><button class="button button-quiet" data-pocket-action="timer-pause">Pause</button><button class="button button-quiet" data-pocket-action="timer-reset">Reset</button></div></article>
     </div>
   </section>
+  ${renderTransportTools()}
   <section class="section pocket-section pocket-places"><div class="section-head"><div><p class="eyebrow">Personal map handoff</p><h2>Nearby & favorite spots</h2></div><p class="section-note">Location is requested only when you tap the button. Google Maps opens separately in your account.</p></div>
     <div class="places-stage">
       <article class="places-location"><span class="pocket-icon">⌖</span><div><h3>Use what is around you</h3><strong data-pocket-place-status>Location not requested</strong><p data-pocket-place-detail>Allow location only when you want Google Maps to start nearby.</p></div><div class="tool-actions"><button class="button button-primary" data-pocket-action="places-location">Use my location</button><a class="button button-quiet" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Open Maps</a></div></article>
@@ -957,7 +978,7 @@ function handleKeydown(event) {
 async function boot() {
   state = await ensureState();
   render();
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=public11').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./service-worker.js?v=dailytools12').catch(() => {});
 }
 
 document.addEventListener('submit', (event) => { handleSubmit(event).catch((error) => notice(`Save failed: ${error.message}`, 'error')); });

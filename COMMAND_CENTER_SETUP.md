@@ -57,3 +57,15 @@ The library now provides official Spotify search starting points for the owner-s
 | Classic outlaw & western | Marty Robbins, Johnny Cash, Willie Nelson, Merle Haggard, Conway Twitty, Hank Williams Jr. |
 
 For an actual curated Spotify playlist, paste its official Spotify URL into the command dock after you create or choose it in your own Spotify account.
+
+## Daily transportation desk
+
+The Pocket page now includes official handoffs for:
+
+- Valley Metro trip planning, nearby bus-stop search, schedules, alerts and the official app.
+- Uber and Lyft rider flows.
+- MTM Health non-emergency medical transportation information and the recorded Arizona plan line.
+- UnitedHealthcare Community Plan information and the Arizona quick-reference guide.
+
+The app does not book rides, store member IDs, receive health-plan credentials, or claim benefit eligibility. Verify current instructions with your plan or member card. Emergency situations require emergency services.
+
